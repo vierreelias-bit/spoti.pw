@@ -3,9 +3,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 UIWindow * _Nullable ELKeyWindow(void);
-UIViewController * _Nullable ELFindTabHost(UIViewController *root);
-NSInteger ELSelectedIndex(UIViewController *host);
-BOOL ELSetSelectedIndex(UIViewController *host, NSInteger index);
-void ELFadeNativeTabBars(UIView *rootView);
+UIView * _Nullable ELFindSpotifyTabBar(UIView *rootView);
+NSArray<UIView *> *ELSpotifyTabItems(UIView *tabBar);
+BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index);
+void ELFadeSpotifyTabBar(UIView *tabBar);
 
 NS_ASSUME_NONNULL_END
