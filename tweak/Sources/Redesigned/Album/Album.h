@@ -35,3 +35,7 @@ void SGRAlbumSetArtwork(UIView *view, UIImage *image);
 // The colour Spotify picked for the album, read off the wash it paints behind the header: the field takes it
 // over the one read from the cover's bottom edge. The same colour again is a no-op.
 void SGRAlbumSetSpotifyColor(UIView *view, UIColor *color);
+
+// EliSpot v30 album controls.
+#define SGRKeyHideAlbumTrackArtists @"spotifyglass.redesign.album.hideTrackArtists"
+UIViewController *SGRAlbumSettingsPage(void);
