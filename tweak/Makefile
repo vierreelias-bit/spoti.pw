@@ -18,6 +18,11 @@ ifeq ($(UNAME_S),Linux)
 spotifyglass_FILES := $(shell find Sources \( -name '*.m' -o -name '*.x' \) \
     ! -path 'Sources/Shared/JamesDSP/*' \
     ! -path 'Sources/Shared/LiveActivity/*' | sort)
+# Upstream generates SGFlagList.m from a Spotify IPA. A deb-only build may not
+# have that file; provide an empty table only when the real one is absent.
+ifeq ($(wildcard Sources/Shared/Flags/SGFlagList.m),)
+spotifyglass_FILES += UbuntuCompat/EmptyFlagList.m
+endif
 else
 spotifyglass_FILES := $(shell find Sources -name '*.m' -o -name '*.x' -o -name '*.swift' | sort)
 endif
