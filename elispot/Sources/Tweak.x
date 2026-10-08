@@ -1,4 +1,5 @@
 #import <UIKit/UIKit.h>
+#import <MediaPlayer/MediaPlayer.h>
 #import <objc/message.h>
 #import "ELRuntime.h"
 #import "ELGlassTabBar.h"
@@ -7,24 +8,29 @@
 @interface ELPlayerObserver : NSObject
 @end
 
+@interface ELAppearanceController : NSObject
+@property(nonatomic,strong) UIView *panel;
+@property(nonatomic,strong) UISlider *miniSlider;
+@property(nonatomic,strong) UISlider *tabsSlider;
+- (void)showSettings:(UILongPressGestureRecognizer *)gesture;
+@end
+
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
 static __weak UIView *ELStockNowPlayingView = nil;
-static __weak UIView *ELStockNowPlayingHost = nil;
 static __weak id ELSpotifyPlayer = nil;
 static id ELCurrentState = nil;
 static UIImage *ELCurrentArtwork = nil;
 static NSTimer *ELProgressTimer = nil;
 static BOOL ELFullPlayerVisible = NO;
+static ELAppearanceController *ELAppearance = nil;
+
+static NSString *const ELMiniOpacityKey = @"elispot.mini.opacity";
+static NSString *const ELTabsOpacityKey = @"elispot.tabs.opacity";
 
 static id ELMsgId(id obj, SEL sel) {
     if (!obj || ![obj respondsToSelector:sel]) return nil;
     return ((id (*)(id, SEL))objc_msgSend)(obj, sel);
-}
-
-static BOOL ELMsgBool(id obj, SEL sel) {
-    if (!obj || ![obj respondsToSelector:sel]) return NO;
-    return ((BOOL (*)(id, SEL))objc_msgSend)(obj, sel);
 }
 
 static double ELMsgDouble(id obj, SEL sel) {
@@ -43,6 +49,17 @@ static UIView *ELChromeHost(void) {
     return root.viewIfLoaded ?: root.view;
 }
 
+static CGFloat ELOpacityForKey(NSString *key, CGFloat fallback) {
+    NSNumber *value = [NSUserDefaults.standardUserDefaults objectForKey:key];
+    if (![value isKindOfClass:NSNumber.class]) return fallback;
+    return MIN(1.0, MAX(0.20, value.doubleValue));
+}
+
+static void ELApplyAppearance(void) {
+    [ELMini setGlassOpacity:ELOpacityForKey(ELMiniOpacityKey, .92)];
+    [ELBar setGlassOpacity:ELOpacityForKey(ELTabsOpacityKey, .90)];
+}
+
 static void ELSetChromeHidden(BOOL hidden) {
     ELFullPlayerVisible = hidden;
 
@@ -55,34 +72,33 @@ static void ELSetChromeHidden(BOOL hidden) {
     ELMini.userInteractionEnabled = !hidden;
 }
 
+static UIImage *ELSystemArtwork(void) {
+    NSDictionary *info = MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo;
+    id raw = info[MPMediaItemPropertyArtwork];
+    if (![raw isKindOfClass:MPMediaItemArtwork.class]) return nil;
+
+    MPMediaItemArtwork *artwork = (MPMediaItemArtwork *)raw;
+    UIImage *image = [artwork imageWithSize:CGSizeMake(300, 300)];
+    return image;
+}
+
 static void ELRefreshMiniPlayer(void) {
     if (!ELMini) return;
+
+    UIImage *systemArtwork = ELSystemArtwork();
+    if (systemArtwork) ELCurrentArtwork = systemArtwork;
 
     id state = ELCurrentState;
     id track = ELMsgId(state, @selector(track));
     NSString *title = ELStringValue(track, @selector(trackTitle));
     NSString *artist = ELStringValue(track, @selector(artistName));
-    BOOL paused = ELMsgBool(state, @selector(isPaused));
     double position = ELMsgDouble(state, @selector(position));
     double duration = ELMsgDouble(state, @selector(duration));
 
     [ELMini setTitle:title ?: @"Ei kappaletta"
             subtitle:artist ?: @"Nyt soi"
              artwork:ELCurrentArtwork];
-    [ELMini setPaused:paused];
     [ELMini setPosition:position duration:duration];
-}
-
-static void ELTogglePlayback(void) {
-    id player = ELSpotifyPlayer;
-    id state = ELCurrentState;
-    if (!player || !state) return;
-
-    BOOL paused = ELMsgBool(state, @selector(isPaused));
-    SEL sel = paused ? @selector(resume:) : @selector(pause:);
-    if (![player respondsToSelector:sel]) return;
-
-    ((id (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
 }
 
 static void ELOpenFullPlayer(void) {
@@ -118,30 +134,131 @@ static BOOL ELViewLivesInsideStockNowPlaying(UIView *view) {
     return NO;
 }
 
-static void ELAdoptMiniPlayerIntoStockBarHost(void) {
-    UIView *stock = ELStockNowPlayingView;
-    UIView *host = stock.superview;
-    if (!stock || !host || !ELMini) return;
+static void ELPositionMiniAboveTabs(void) {
+    if (!ELMini || !ELBar || !ELStockNowPlayingView.superview) return;
 
-    ELStockNowPlayingHost = host;
-
+    UIView *host = ELStockNowPlayingView.superview;
     if (ELMini.superview != host) {
         [ELMini removeFromSuperview];
         [host addSubview:ELMini];
     }
 
-    CGRect stockFrame = stock.frame;
-    CGFloat inset = 10.0;
-    CGFloat h = MAX(58.0, MIN(68.0, CGRectGetHeight(stockFrame)));
-    CGFloat y = CGRectGetMidY(stockFrame) - h / 2.0;
+    CGRect barFrame = [ELBar.superview convertRect:ELBar.frame toView:host];
+    CGFloat h = 62.0;
+    CGFloat gap = 10.0;
+    CGFloat y = CGRectGetMinY(barFrame) - h - gap;
 
-    ELMini.frame = CGRectMake(CGRectGetMinX(stockFrame) + inset,
+    ELMini.frame = CGRectMake(CGRectGetMinX(barFrame),
                               y,
-                              MAX(120.0, CGRectGetWidth(stockFrame) - inset * 2.0),
+                              CGRectGetWidth(barFrame),
                               h);
-
     [host bringSubviewToFront:ELMini];
 }
+
+@implementation ELAppearanceController
+
+- (UIVisualEffect *)panelEffect {
+    Class glass = NSClassFromString(@"UIGlassEffect");
+    if (glass) return [[glass alloc] init];
+    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemMaterialDark];
+}
+
+- (void)showSettings:(UILongPressGestureRecognizer *)gesture {
+    if (gesture.state != UIGestureRecognizerStateBegan) return;
+
+    if (self.panel) {
+        [self.panel removeFromSuperview];
+        self.panel = nil;
+        return;
+    }
+
+    UIView *host = ELChromeHost();
+    if (!host) return;
+
+    CGFloat width = MIN(330.0, host.bounds.size.width - 32.0);
+    CGFloat height = 190.0;
+    UIView *panel = [[UIView alloc] initWithFrame:CGRectMake((host.bounds.size.width - width) / 2.0,
+                                                             host.safeAreaInsets.top + 70.0,
+                                                             width,
+                                                             height)];
+    panel.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
+    panel.layer.cornerRadius = 28;
+    panel.layer.cornerCurve = kCACornerCurveContinuous;
+    panel.layer.shadowColor = UIColor.blackColor.CGColor;
+    panel.layer.shadowOpacity = .35;
+    panel.layer.shadowRadius = 24;
+
+    UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:[self panelEffect]];
+    glass.frame = panel.bounds;
+    glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    glass.layer.cornerRadius = 28;
+    glass.layer.cornerCurve = kCACornerCurveContinuous;
+    glass.layer.borderWidth = .7;
+    glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.18].CGColor;
+    glass.clipsToBounds = YES;
+    [panel addSubview:glass];
+
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(20, 16, width - 70, 24)];
+    title.text = @"EliSpot-ulkoasu";
+    title.textColor = UIColor.whiteColor;
+    title.font = [UIFont systemFontOfSize:18 weight:UIFontWeightBold];
+    [panel addSubview:title];
+
+    UIButton *close = [UIButton buttonWithType:UIButtonTypeSystem];
+    close.frame = CGRectMake(width - 48, 10, 38, 38);
+    [close setImage:[UIImage systemImageNamed:@"xmark"] forState:UIControlStateNormal];
+    close.tintColor = UIColor.whiteColor;
+    [close addTarget:self action:@selector(closeSettings) forControlEvents:UIControlEventTouchUpInside];
+    [panel addSubview:close];
+
+    UILabel *miniLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 58, width - 40, 20)];
+    miniLabel.text = @"Nyt soi -läpinäkyvyys";
+    miniLabel.textColor = UIColor.whiteColor;
+    miniLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
+    [panel addSubview:miniLabel];
+
+    UISlider *mini = [[UISlider alloc] initWithFrame:CGRectMake(20, 79, width - 40, 28)];
+    mini.minimumValue = .20;
+    mini.maximumValue = 1.0;
+    mini.value = ELOpacityForKey(ELMiniOpacityKey, .92);
+    [mini addTarget:self action:@selector(miniOpacityChanged:) forControlEvents:UIControlEventValueChanged];
+    [panel addSubview:mini];
+    self.miniSlider = mini;
+
+    UILabel *tabsLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 112, width - 40, 20)];
+    tabsLabel.text = @"Tabien läpinäkyvyys";
+    tabsLabel.textColor = UIColor.whiteColor;
+    tabsLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
+    [panel addSubview:tabsLabel];
+
+    UISlider *tabs = [[UISlider alloc] initWithFrame:CGRectMake(20, 133, width - 40, 28)];
+    tabs.minimumValue = .20;
+    tabs.maximumValue = 1.0;
+    tabs.value = ELOpacityForKey(ELTabsOpacityKey, .90);
+    [tabs addTarget:self action:@selector(tabsOpacityChanged:) forControlEvents:UIControlEventValueChanged];
+    [panel addSubview:tabs];
+    self.tabsSlider = tabs;
+
+    self.panel = panel;
+    [host addSubview:panel];
+}
+
+- (void)closeSettings {
+    [self.panel removeFromSuperview];
+    self.panel = nil;
+}
+
+- (void)miniOpacityChanged:(UISlider *)slider {
+    [NSUserDefaults.standardUserDefaults setDouble:slider.value forKey:ELMiniOpacityKey];
+    ELApplyAppearance();
+}
+
+- (void)tabsOpacityChanged:(UISlider *)slider {
+    [NSUserDefaults.standardUserDefaults setDouble:slider.value forKey:ELTabsOpacityKey];
+    ELApplyAppearance();
+}
+
+@end
 
 @implementation ELPlayerObserver
 - (void)player:(id)player stateDidChange:(id)state {
@@ -156,9 +273,8 @@ static void ELAdoptMiniPlayerIntoStockBarHost(void) {
 static ELPlayerObserver *ELObserver = nil;
 
 static void ELInstallUI(void) {
-    UIWindow *window = ELKeyWindow();
     UIView *host = ELChromeHost();
-    if (!window || !host) return;
+    if (!host) return;
 
     UIView *spotifyBar = ELFindSpotifyTabBar(host);
     if (!spotifyBar) return;
@@ -182,6 +298,12 @@ static void ELInstallUI(void) {
         ELBar.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
         [host addSubview:ELBar];
+
+        if (!ELAppearance) ELAppearance = [ELAppearanceController new];
+        UILongPressGestureRecognizer *hold =
+            [[UILongPressGestureRecognizer alloc] initWithTarget:ELAppearance action:@selector(showSettings:)];
+        hold.minimumPressDuration = .65;
+        [ELBar addGestureRecognizer:hold];
     } else if (ELBar.superview != host) {
         [ELBar removeFromSuperview];
         [host addSubview:ELBar];
@@ -196,45 +318,37 @@ static void ELInstallUI(void) {
     ELBar.spotifyTabBar = spotifyBar;
     [ELBar syncFromSpotify];
 
-    CGFloat miniH = 62.0;
-    CGFloat miniY = CGRectGetMinY(ELBar.frame) - miniH - 8.0;
-
     if (!ELMini) {
         ELMini = [[ELMiniPlayer alloc] initWithFrame:CGRectMake(
             side,
-            miniY,
+            CGRectGetMinY(ELBar.frame) - 72.0,
             host.bounds.size.width - side * 2.0,
-            miniH
+            62.0
         )];
         ELMini.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-
-        ELMini.playPauseHandler = ^{
-            ELTogglePlayback();
-        };
         ELMini.openHandler = ^{
             ELOpenFullPlayer();
         };
-
         [host addSubview:ELMini];
         ELRefreshMiniPlayer();
         ELStartProgressTimer();
     }
 
     if (ELStockNowPlayingView.superview) {
-        ELAdoptMiniPlayerIntoStockBarHost();
+        ELPositionMiniAboveTabs();
     } else {
         if (ELMini.superview != host) {
             [ELMini removeFromSuperview];
             [host addSubview:ELMini];
         }
-        ELMini.frame = CGRectMake(
-            side,
-            miniY,
-            host.bounds.size.width - side * 2.0,
-            miniH
-        );
+        ELMini.frame = CGRectMake(side,
+                                  CGRectGetMinY(ELBar.frame) - 72.0,
+                                  host.bounds.size.width - side * 2.0,
+                                  62.0);
     }
+
+    ELApplyAppearance();
 
     if (!ELFullPlayerVisible) {
         if (ELMini.superview) [ELMini.superview bringSubviewToFront:ELMini];
@@ -279,12 +393,11 @@ static void ELInstallUI(void) {
 
     UIView *stock = ((UIViewController *)self).view;
     ELStockNowPlayingView = stock;
-    ELStockNowPlayingHost = stock.superview;
 
     ELCaptureArtworkFromView(stock);
     ELHideStockNowPlayingView(stock);
     ELInstallUI();
-    ELAdoptMiniPlayerIntoStockBarHost();
+    ELPositionMiniAboveTabs();
     ELRefreshMiniPlayer();
 }
 %end
@@ -307,6 +420,7 @@ static void ELInstallUI(void) {
 - (void)viewWillDisappear:(BOOL)animated {
     %orig;
     ELSetChromeHidden(NO);
+    ELApplyAppearance();
 }
 %end
 
@@ -341,7 +455,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.2");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.3");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
