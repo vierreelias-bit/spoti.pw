@@ -164,20 +164,23 @@ static UIControl *ELFindControl(UIView *view) {
     return nil;
 }
 
-BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index) {
-    NSArray<UIView *> *items = ELSpotifyTabItems(tabBar);
-    if (index < 0 || index >= (NSInteger)items.count) return NO;
+BOOL ELActivateView(UIView *view) {
+    if (!view) return NO;
+    if (ELFireTapInTree(view)) return YES;
 
-    UIView *item = items[index];
-    if (ELFireTapInTree(item)) return YES;
-
-    UIControl *control = ELFindControl(item);
+    UIControl *control = ELFindControl(view);
     if (control) {
         [control sendActionsForControlEvents:UIControlEventTouchUpInside];
         return YES;
     }
 
-    return [item accessibilityActivate];
+    return [view accessibilityActivate];
+}
+
+BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index) {
+    NSArray<UIView *> *items = ELSpotifyTabItems(tabBar);
+    if (index < 0 || index >= (NSInteger)items.count) return NO;
+    return ELActivateView(items[index]);
 }
 
 void ELFadeSpotifyTabBar(UIView *tabBar) {
@@ -212,5 +215,5 @@ UIImage *ELBestArtworkImage(UIView *rootView) {
 void ELHideStockNowPlayingView(UIView *rootView) {
     if (!rootView) return;
     rootView.alpha = 0.001;
-    rootView.userInteractionEnabled = NO;
+    rootView.userInteractionEnabled = YES;
 }
