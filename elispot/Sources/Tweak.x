@@ -10,6 +10,7 @@
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
 static __weak UIView *ELStockNowPlayingView = nil;
+static __weak UIView *ELStockNowPlayingHost = nil;
 static __weak id ELSpotifyPlayer = nil;
 static id ELCurrentState = nil;
 static UIImage *ELCurrentArtwork = nil;
@@ -107,6 +108,41 @@ static void ELCaptureArtworkFromView(UIView *view) {
     ELRefreshMiniPlayer();
 }
 
+static BOOL ELViewLivesInsideStockNowPlaying(UIView *view) {
+    UIView *stock = ELStockNowPlayingView;
+    if (!stock || !view) return NO;
+
+    for (UIView *cursor = view; cursor; cursor = cursor.superview) {
+        if (cursor == stock) return YES;
+    }
+    return NO;
+}
+
+static void ELAdoptMiniPlayerIntoStockBarHost(void) {
+    UIView *stock = ELStockNowPlayingView;
+    UIView *host = stock.superview;
+    if (!stock || !host || !ELMini) return;
+
+    ELStockNowPlayingHost = host;
+
+    if (ELMini.superview != host) {
+        [ELMini removeFromSuperview];
+        [host addSubview:ELMini];
+    }
+
+    CGRect stockFrame = stock.frame;
+    CGFloat inset = 10.0;
+    CGFloat h = MAX(58.0, MIN(68.0, CGRectGetHeight(stockFrame)));
+    CGFloat y = CGRectGetMidY(stockFrame) - h / 2.0;
+
+    ELMini.frame = CGRectMake(CGRectGetMinX(stockFrame) + inset,
+                              y,
+                              MAX(120.0, CGRectGetWidth(stockFrame) - inset * 2.0),
+                              h);
+
+    [host bringSubviewToFront:ELMini];
+}
+
 @implementation ELPlayerObserver
 - (void)player:(id)player stateDidChange:(id)state {
     ELSpotifyPlayer = player;
@@ -183,20 +219,25 @@ static void ELInstallUI(void) {
         [host addSubview:ELMini];
         ELRefreshMiniPlayer();
         ELStartProgressTimer();
-    } else if (ELMini.superview != host) {
-        [ELMini removeFromSuperview];
-        [host addSubview:ELMini];
     }
 
-    ELMini.frame = CGRectMake(
-        side,
-        miniY,
-        host.bounds.size.width - side * 2.0,
-        miniH
-    );
+    if (ELStockNowPlayingView.superview) {
+        ELAdoptMiniPlayerIntoStockBarHost();
+    } else {
+        if (ELMini.superview != host) {
+            [ELMini removeFromSuperview];
+            [host addSubview:ELMini];
+        }
+        ELMini.frame = CGRectMake(
+            side,
+            miniY,
+            host.bounds.size.width - side * 2.0,
+            miniH
+        );
+    }
 
     if (!ELFullPlayerVisible) {
-        [host bringSubviewToFront:ELMini];
+        if (ELMini.superview) [ELMini.superview bringSubviewToFront:ELMini];
         [host bringSubviewToFront:ELBar];
     }
 }
@@ -238,10 +279,12 @@ static void ELInstallUI(void) {
 
     UIView *stock = ((UIViewController *)self).view;
     ELStockNowPlayingView = stock;
+    ELStockNowPlayingHost = stock.superview;
 
     ELCaptureArtworkFromView(stock);
     ELHideStockNowPlayingView(stock);
     ELInstallUI();
+    ELAdoptMiniPlayerIntoStockBarHost();
     ELRefreshMiniPlayer();
 }
 %end
@@ -267,6 +310,27 @@ static void ELInstallUI(void) {
 }
 %end
 
+%hook UIImageView
+- (void)setImage:(UIImage *)image {
+    %orig;
+
+    if (!image) return;
+    UIView *view = (UIView *)self;
+    if (!ELViewLivesInsideStockNowPlaying(view)) return;
+
+    CGSize size = image.size;
+    if (size.width < 40 || size.height < 40) return;
+
+    CGFloat ratio = size.height > 0 ? size.width / size.height : 0;
+    if (ratio < 0.80 || ratio > 1.25) return;
+
+    ELCurrentArtwork = image;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        ELRefreshMiniPlayer();
+    });
+}
+%end
+
 %hook UIViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
@@ -277,7 +341,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.1");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.2");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
