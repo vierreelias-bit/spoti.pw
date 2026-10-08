@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 
 @interface ELGlassTabBar : UIView
-@property(nonatomic, weak) UIViewController *tabHost;
-- (void)syncSelection;
+@property(nonatomic, weak) UIView *spotifyTabBar;
+- (void)syncFromSpotify;
 @end
