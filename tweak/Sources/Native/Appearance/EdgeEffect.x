@@ -1,21 +1,36 @@
-// Soft top edge: iOS 27 resolves a scroll view's automatic top edge effect to the hard style, the
-// flat dark band under the navigation bar (UIKit.ScrollEdgeEffectView in trees/continuous/1.txt).
-// Setting the soft style brings back iOS 26's thin fading blur. Set on every layout pass as well as
-// on arrival, in case UIKit resolves the style again after the page appears.
+// Soft top edge using runtime calls so EliSpot can compile against the iOS 16.5 SDK on Ubuntu.
 #import <objc/runtime.h>
 #import "Core/SGCore.h"
 
 static void soften(UIScrollView *scrollView) {
     if (@available(iOS 26.0, *)) {
-        // The style last set here, so a layout pass the setter itself causes does not set it again.
-        static char setKey;
-        UIScrollEdgeEffect *top = scrollView.topEdgeEffect;
-        if (top.style == objc_getAssociatedObject(scrollView, &setKey)) return;
-        UIScrollEdgeEffectStyle *soft = UIScrollEdgeEffectStyle.softStyle;
-        top.style = soft;
-        objc_setAssociatedObject(scrollView, &setKey, top.style, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        SEL topSel = NSSelectorFromString(@"topEdgeEffect");
+        SEL styleSel = NSSelectorFromString(@"style");
+        SEL setStyleSel = NSSelectorFromString(@"setStyle:");
+        Class styleClass = NSClassFromString(@"UIScrollEdgeEffectStyle");
+        SEL softSel = NSSelectorFromString(@"softStyle");
+
+        if (![scrollView respondsToSelector:topSel] ||
+            !styleClass || ![styleClass respondsToSelector:softSel]) return;
+
+        id (*getObject)(id, SEL) = (void *)[scrollView methodForSelector:topSel];
+        id top = getObject(scrollView, topSel);
+        if (!top || ![top respondsToSelector:styleSel] || ![top respondsToSelector:setStyleSel]) return;
+
+        id (*makeSoft)(id, SEL) = (void *)[styleClass methodForSelector:softSel];
+        id soft = makeSoft(styleClass, softSel);
+
+        id (*getStyle)(id, SEL) = (void *)[top methodForSelector:styleSel];
+        id current = getStyle(top, styleSel);
+        if (current == soft || [current isEqual:soft]) return;
+
+        void (*setStyle)(id, SEL, id) = (void *)[top methodForSelector:setStyleSel];
+        setStyle(top, setStyleSel, soft);
+
         static dispatch_once_t once;
-        dispatch_once(&once, ^{ SGLog(@"soft top edge: first scroll view %@", NSStringFromClass(scrollView.class)); });
+        dispatch_once(&once, ^{
+            SGLog(@"soft top edge: first scroll view %@", NSStringFromClass(scrollView.class));
+        });
     }
 }
 
