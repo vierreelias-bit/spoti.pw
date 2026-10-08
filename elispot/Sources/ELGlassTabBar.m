@@ -5,6 +5,13 @@
 @interface ELRGBRing : UIView
 @property(nonatomic,strong) CAGradientLayer *gradient;
 @property(nonatomic,strong) CAShapeLayer *maskLayer;
+- (void)setGlassOpacity:(CGFloat)opacity {
+    CGFloat value = MIN(1.0, MAX(0.20, opacity));
+    self.pill.alpha = value;
+    self.lens.alpha = value;
+    self.ring.alpha = MIN(1.0, value + .05);
+}
+
 @end
 
 @implementation ELRGBRing
@@ -32,6 +39,12 @@
         _maskLayer.strokeColor = UIColor.whiteColor.CGColor;
         _maskLayer.lineWidth = 1.1;
         _gradient.mask = _maskLayer;
+        _gradient.opacity = .72;
+        self.alpha = .86;
+        self.layer.shadowColor = UIColor.whiteColor.CGColor;
+        self.layer.shadowOpacity = .16;
+        self.layer.shadowRadius = 4.0;
+        self.layer.shadowOffset = CGSizeZero;
 
         CABasicAnimation *spin = [CABasicAnimation animationWithKeyPath:@"transform.rotation.z"];
         spin.fromValue = @0;
