@@ -136,8 +136,8 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 }
 
 - (void)setTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork {
-    self.titleLabel.text = title.length ? title : @"Nothing playing";
-    self.subtitleLabel.text = subtitle.length ? subtitle : @"Spotify";
+    self.titleLabel.text = title.length ? title : @"Ei kappaletta";
+    self.subtitleLabel.text = subtitle.length ? subtitle : @"Nyt soi";
     if (artwork) self.artworkView.image = artwork;
 }
 
