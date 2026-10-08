@@ -111,5 +111,5 @@ static void report(SPTPlayerState *state) {
     if (!SGIsDebugBuild()) return;
     %init;
     SGRequireClasses(@[@"SPTEsperantoPlayer", @"_TtC28EncoreConsumerMobile_BaseKit14PlayButtonView"]);
-    SGLog(@"debug build: the player's state is logged as it changes");
+    SGLog(@"%@", @"debug build: the player's state is logged as it changes");
 }
