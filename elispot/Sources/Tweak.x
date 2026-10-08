@@ -8,13 +8,19 @@ static void ELInstallIfPossible(void) {
     UIWindow *window = ELKeyWindow();
     if (!window || !window.rootViewController) return;
 
-    UIViewController *host = ELFindTabHost(window.rootViewController);
-    if (!host) {
-        NSLog(@"[EliSpot] loaded, but no tab host found yet");
+    UIView *spotifyBar = ELFindSpotifyTabBar(window.rootViewController.view);
+    if (!spotifyBar) {
+        NSLog(@"[EliSpot] loaded; waiting for Spotify TabBarView");
         return;
     }
 
-    ELFadeNativeTabBars(window.rootViewController.view);
+    NSArray *items = ELSpotifyTabItems(spotifyBar);
+    NSLog(@"[EliSpot] found Spotify TabBarView with %lu item views",
+          (unsigned long)items.count);
+
+    if (items.count < 3) return;
+
+    ELFadeSpotifyTabBar(spotifyBar);
 
     if (!ELBar) {
         CGFloat side = 18.0;
@@ -27,24 +33,25 @@ static void ELInstallIfPossible(void) {
             window.bounds.size.width - side * 2.0,
             height
         )];
-        ELBar.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
+
+        ELBar.autoresizingMask =
+            UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
         [window addSubview:ELBar];
-        NSLog(@"[EliSpot] glass tab bar installed on %@", NSStringFromClass(host.class));
+
+        NSLog(@"[EliSpot] custom Liquid Glass bar installed");
     }
 
-    ELBar.tabHost = host;
-    [ELBar syncSelection];
+    ELBar.spotifyTabBar = spotifyBar;
+    [ELBar syncFromSpotify];
 }
 
 %hook UIViewController
-
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     dispatch_async(dispatch_get_main_queue(), ^{
         ELInstallIfPossible();
     });
 }
-
 %end
 
 %ctor {
