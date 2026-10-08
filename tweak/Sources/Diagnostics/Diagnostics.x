@@ -164,6 +164,6 @@ static void startTreeServer(void) {
             SGDumpScreen(@"on background");
         }];
         startTreeServer();
-        SGLog(@"debug build: backgrounding the app dumps the visible screen's view tree");
+        SGLog(@"%@", @"debug build: backgrounding the app dumps the visible screen's view tree");
     }
 }
