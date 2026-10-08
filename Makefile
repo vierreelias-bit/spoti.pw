@@ -13,9 +13,9 @@ DEV_NAME ?= EliSpot
 DEV_ICON ?= docs/icon.png
 
 .PHONY: build release install trees session log flags
-build:    ## FLEX + glass IPA into out/
+build:    ## EliSpot + FLEX IPA into out/
 	./scripts/pipeline.sh $(IPA)
-release:  ## glass only, no FLEX
+release:  ## EliSpot only, no FLEX
 	./scripts/pipeline.sh $(IPA) --no-flex
 install:  ## build, sign with your certificate, push to the phone on USB (FLEX=1 to take FLEX too)
 	./scripts/pipeline.sh $(IPA) --install $(FLEX_ARG) --name "$(DEV_NAME)" --icon "$(DEV_ICON)" -o out/EliSpot-dev.ipa
