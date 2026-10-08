@@ -1294,10 +1294,16 @@ typedef struct {
                           [UIImageSymbolConfiguration configurationWithPointSize:kExtrasGlyph weight:UIImageSymbolWeightSemibold]];
         // The system's glass, which turns solid under Reduce Transparency by itself; before iOS 26, the
         // Kit's solid fill in its place.
-        UIButtonConfiguration *config;
+        UIButtonConfiguration *config = nil;
+        SEL glassSel = NSSelectorFromString(@"glassButtonConfiguration");
         if (@available(iOS 26.0, *)) {
-            config = [UIButtonConfiguration glassButtonConfiguration];
-        } else {
+            Class cls = UIButtonConfiguration.class;
+            if ([cls respondsToSelector:glassSel]) {
+                id (*call0)(id, SEL) = (void *)[cls methodForSelector:glassSel];
+                config = call0(cls, glassSel);
+            }
+        }
+        if (!config) {
             config = [UIButtonConfiguration filledButtonConfiguration];
             config.baseBackgroundColor = SGRSolidGlassFill();
         }
