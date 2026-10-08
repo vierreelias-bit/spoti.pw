@@ -55,8 +55,9 @@ static CAShapeLayer *newStroke(CGFloat width) {
 - (instancetype)initWithFrame:(CGRect)frame {
     if (!(self = [super initWithFrame:CGRectMake(frame.origin.x, frame.origin.y, kWidth, kHeight)])) return nil;
     self.isAccessibilityElement = YES;
+    // Ubuntu/WSL builds use the iOS 16 SDK, where ToggleButton is not declared.
+    // Button still gives VoiceOver the correct interactive semantics.
     self.accessibilityTraits = UIAccessibilityTraitButton;
-    if (@available(iOS 17.0, *)) self.accessibilityTraits = UIAccessibilityTraitToggleButton;
 
     _track = [CAShapeLayer layer];
     _track.lineWidth = 1;
