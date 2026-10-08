@@ -1,0 +1,55 @@
+name: Build EliSpot DEB
+
+on:
+  workflow_dispatch:
+
+env:
+  THEOS: ${{ github.workspace }}/theos
+
+jobs:
+  build-deb:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout EliSpot
+        uses: actions/checkout@v5
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Checkout Theos
+        uses: actions/checkout@v5
+        with:
+          repository: theos/theos
+          path: theos
+          submodules: recursive
+
+      - name: Install tools
+        run: brew install make dpkg ldid
+
+      - name: Restore Spotify flag table
+        env:
+          SG_FLAG_LIST: ${{ secrets.SG_FLAG_LIST }}
+        run: |
+          if [ -n "$SG_FLAG_LIST" ]; then
+            echo "$SG_FLAG_LIST" | base64 -d | gunzip > tweak/Sources/Shared/Flags/SGFlagList.m
+          elif [ ! -f tweak/Sources/Shared/Flags/SGFlagList.m ]; then
+            echo "::error::SG_FLAG_LIST secret is missing and no generated flag table exists in this branch."
+            echo "Generate tweak/Sources/Shared/Flags/SGFlagList.m from Spotify 9.1.78 first, or add it as the SG_FLAG_LIST repository secret."
+            exit 1
+          fi
+
+      - name: Build EliSpot DEB
+        run: env -u MAKELEVEL gmake -C tweak clean package
+
+      - name: Show package
+        run: ls -lh tweak/packages/*.deb
+
+      - name: Upload EliSpot DEB
+        uses: actions/upload-artifact@v5
+        with:
+          name: EliSpot-DEB
+          path: tweak/packages/*.deb
+          if-no-files-found: error
