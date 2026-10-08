@@ -3,6 +3,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface ELMiniPlayer : UIView
+@property(nonatomic, copy, nullable) void (^playPauseHandler)(void);
 @property(nonatomic, copy, nullable) void (^openHandler)(void);
 - (void)setTitle:(NSString *)title
         subtitle:(NSString *)subtitle
