@@ -7,6 +7,7 @@ UIView * _Nullable ELFindSpotifyTabBar(UIView *rootView);
 NSArray<UIView *> *ELSpotifyTabItems(UIView *tabBar);
 NSInteger ELSpotifySelectedIndex(UIView *tabBar);
 BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index);
+BOOL ELActivateView(UIView *view);
 void ELFadeSpotifyTabBar(UIView *tabBar);
 UIImage * _Nullable ELBestArtworkImage(UIView *rootView);
 void ELHideStockNowPlayingView(UIView *rootView);
