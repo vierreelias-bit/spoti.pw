@@ -91,6 +91,7 @@ static UIVisualEffect *ELGlassEffect(void) {
     [_pill.contentView addSubview:dark];
 
     _lens = [[UIVisualEffectView alloc] initWithEffect:ELGlassEffect()];
+    _lens.userInteractionEnabled = NO;
     _lens.layer.cornerRadius = 52;
     _lens.layer.cornerCurve = kCACornerCurveContinuous;
     _lens.layer.borderWidth = .9;
