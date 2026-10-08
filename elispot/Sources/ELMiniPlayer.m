@@ -21,7 +21,6 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 @property(nonatomic,strong) UILabel *timeLabel;
 @property(nonatomic,strong) UIView *progressTrack;
 @property(nonatomic,strong) UIView *progressFill;
-@property(nonatomic,strong) UIButton *playButton;
 @property(nonatomic,assign) CGFloat progress;
 @end
 
@@ -33,9 +32,9 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
     self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
     self.backgroundColor = UIColor.clearColor;
     self.layer.shadowColor = UIColor.blackColor.CGColor;
-    self.layer.shadowOpacity = .25;
-    self.layer.shadowRadius = 20;
-    self.layer.shadowOffset = CGSizeMake(0, 9);
+    self.layer.shadowOpacity = .22;
+    self.layer.shadowRadius = 18;
+    self.layer.shadowOffset = CGSizeMake(0, 8);
 
     _glass = [[UIVisualEffectView alloc] initWithEffect:ELMiniGlass()];
     _glass.layer.cornerRadius = 23;
@@ -47,7 +46,7 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 
     UIView *tint = [UIView new];
     tint.tag = 3001;
-    tint.backgroundColor = [UIColor colorWithWhite:0 alpha:.10];
+    tint.backgroundColor = [UIColor colorWithWhite:0 alpha:.08];
     [_glass.contentView addSubview:tint];
 
     _artworkView = [UIImageView new];
@@ -87,21 +86,10 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
     _progressFill.layer.cornerRadius = 1.5;
     [_progressTrack addSubview:_progressFill];
 
-    _playButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    _playButton.tintColor = UIColor.whiteColor;
-    _playButton.backgroundColor = [UIColor colorWithWhite:1 alpha:.05];
-    _playButton.layer.cornerRadius = 16;
-    _playButton.layer.cornerCurve = kCACornerCurveContinuous;
-    _playButton.layer.borderWidth = .5;
-    _playButton.layer.borderColor = [UIColor colorWithWhite:1 alpha:.12].CGColor;
-    [_playButton addTarget:self action:@selector(playPauseTapped) forControlEvents:UIControlEventTouchUpInside];
-    [_glass.contentView addSubview:_playButton];
-
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(openTapped:)];
     tap.cancelsTouchesInView = NO;
     [self addGestureRecognizer:tap];
 
-    [self setPaused:YES];
     return self;
 }
 
@@ -115,11 +103,8 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
     CGFloat artwork = h - 12;
     self.artworkView.frame = CGRectMake(6, 6, artwork, artwork);
 
-    CGFloat buttonSize = 32;
-    self.playButton.frame = CGRectMake(self.bounds.size.width - buttonSize - 9, 7, buttonSize, buttonSize);
-
     CGFloat textX = CGRectGetMaxX(self.artworkView.frame) + 10;
-    CGFloat textRight = CGRectGetMinX(self.playButton.frame) - 8;
+    CGFloat textRight = self.bounds.size.width - 10;
     CGFloat textWidth = MAX(20, textRight - textX);
 
     self.titleLabel.frame = CGRectMake(textX, 7, textWidth, 18);
@@ -142,10 +127,7 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 }
 
 - (void)setPaused:(BOOL)paused {
-    NSString *name = paused ? @"play.fill" : @"pause.fill";
-    UIImageSymbolConfiguration *cfg =
-        [UIImageSymbolConfiguration configurationWithPointSize:13 weight:UIImageSymbolWeightBold];
-    [self.playButton setImage:[UIImage systemImageNamed:name withConfiguration:cfg] forState:UIControlStateNormal];
+    (void)paused;
 }
 
 - (void)setPosition:(NSTimeInterval)position duration:(NSTimeInterval)duration {
@@ -156,13 +138,12 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
     [self setNeedsLayout];
 }
 
-- (void)playPauseTapped {
-    if (self.playPauseHandler) self.playPauseHandler();
+- (void)setGlassOpacity:(CGFloat)opacity {
+    self.alpha = MIN(1.0, MAX(0.20, opacity));
 }
 
 - (void)openTapped:(UITapGestureRecognizer *)tap {
-    CGPoint p = [tap locationInView:self];
-    if (CGRectContainsPoint(self.playButton.frame, p)) return;
+    (void)tap;
     if (self.openHandler) self.openHandler();
 }
 
