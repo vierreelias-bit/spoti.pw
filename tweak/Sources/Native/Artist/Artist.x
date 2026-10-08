@@ -323,7 +323,7 @@ static BOOL collapsed(UICollectionViewCell *cell, NSIndexPath *path) {
     result.size = CGSizeMake(result.size.width, 0);
     ((UIView *)self).clipsToBounds = YES;
     static dispatch_once_t once;
-    dispatch_once(&once, ^{ SGLog(@"artist page: collapsed the first row"); });
+    dispatch_once(&once, ^{ SGLog(@"%@", @"artist page: collapsed the first row"); });
     return result;
 }
 %end
