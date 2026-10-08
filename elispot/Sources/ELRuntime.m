@@ -1,9 +1,5 @@
 #import "ELRuntime.h"
 
-static BOOL ELClassNameEquals(UIView *view, NSString *name) {
-    return [NSStringFromClass(view.class) isEqualToString:name];
-}
-
 UIWindow *ELKeyWindow(void) {
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if (![scene isKindOfClass:UIWindowScene.class]) continue;
@@ -81,8 +77,6 @@ BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index) {
 
     UIView *item = items[index];
 
-    // UIKit/SwiftUI-backed controls commonly expose accessibilityActivate,
-    // which keeps Spotify's own navigation action in charge.
     if ([item accessibilityActivate]) {
         NSLog(@"[EliSpot] activated Spotify tab %ld via accessibility", (long)index);
         return YES;
@@ -101,7 +95,6 @@ BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index) {
 
 void ELFadeSpotifyTabBar(UIView *tabBar) {
     if (!tabBar) return;
-    // Keep it alive so its own controls/navigation logic still work when invoked programmatically.
     tabBar.alpha = 0.001;
     tabBar.userInteractionEnabled = NO;
 }
