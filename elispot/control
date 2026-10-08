@@ -1,8 +1,8 @@
 Package: i.elias.elispot
 Name: EliSpot
-Version: 0.1.0
+Version: 0.1.1
 Architecture: iphoneos-arm
-Description: Clean-room Spotify UI tweak experiment.
+Description: Clean-room Spotify UI tweak experiment with load diagnostics.
 Maintainer: elias
 Author: elias
 Section: Tweaks
