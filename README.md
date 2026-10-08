@@ -50,6 +50,30 @@ No IPA is distributed. Bring a decrypted **Spotify 9.1.78** IPA; you get an unsi
 `EliSpot-<mod version>.ipa` to sign with SideStore, Feather or any certificate signer. Each
 [release](https://github.com/vierreelias-bit/spoti.pw/releases) also carries the tweak's `.deb`.
 
+### Build a tweak .deb on Ubuntu / WSL
+
+The `elispot-ubuntu` branch supports a **deb-only** Theos build; it does not
+build, modify, or require a Spotify IPA. Install Theos and an iPhoneOS SDK first.
+From a checkout of this branch:
+
+```sh
+cd tweak
+make clean
+make package
+ls -lh packages/*.deb
+```
+
+The Debian package uses the tweak metadata in `tweak/control`
+(`i.elias.elispot`). This is a **limited** build: Linux skips the JamesDSP
+engine and the Swift-based Live Activity extension. If no Spotify-specific
+`SGFlagList.m` has been generated, the build uses an empty fallback flag table,
+so the searchable All flags catalog is empty. Other source code is kept in
+the repository.
+
+If it fails, capture the first real compiler/linker error with
+`make package 2>&1 | tee build.log` and
+`grep -nE "error:|Undefined symbols|duplicate symbol|ld:" build.log`.
+
 ### Build with GitHub Actions
 
 Fork the repo, enable Actions, run **Build IPA from your own Spotify IPA**. It takes a direct link to
