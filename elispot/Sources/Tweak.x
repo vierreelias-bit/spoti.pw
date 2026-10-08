@@ -1,8 +1,12 @@
 #import <UIKit/UIKit.h>
 #import "ELRuntime.h"
 #import "ELGlassTabBar.h"
+#import "ELMiniPlayer.h"
+#import "ELPlayerOverlay.h"
 
 static ELGlassTabBar *ELBar = nil;
+static ELMiniPlayer *ELMini = nil;
+static ELPlayerOverlay *ELPlayer = nil;
 
 static void ELInstallIfPossible(void) {
     UIWindow *window = ELKeyWindow();
@@ -22,27 +26,47 @@ static void ELInstallIfPossible(void) {
 
     ELFadeSpotifyTabBar(spotifyBar);
 
-    if (!ELBar) {
-        CGFloat side = 18.0;
-        CGFloat height = 78.0;
-        CGFloat bottom = MAX(window.safeAreaInsets.bottom, 8.0) + 8.0;
+    CGFloat side = 18.0;
+    CGFloat tabHeight = 78.0;
+    CGFloat bottom = MAX(window.safeAreaInsets.bottom, 8.0) + 8.0;
 
+    if (!ELBar) {
         ELBar = [[ELGlassTabBar alloc] initWithFrame:CGRectMake(
             side,
-            window.bounds.size.height - bottom - height,
+            window.bounds.size.height - bottom - tabHeight,
             window.bounds.size.width - side * 2.0,
-            height
+            tabHeight
         )];
 
         ELBar.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
         [window addSubview:ELBar];
-
         NSLog(@"[EliSpot] custom Liquid Glass bar installed");
     }
 
     ELBar.spotifyTabBar = spotifyBar;
     [ELBar syncFromSpotify];
+
+    if (!ELMini) {
+        CGFloat miniH = 58.0;
+        ELMinI = nil;
+    }
+
+    if (!ELMini) {
+        CGFloat miniH = 58.0;
+        CGFloat y = CGRectGetMinY(ELBar.frame) - miniH - 8.0;
+        ELMini = [[ELMiniPlayer alloc] initWithFrame:CGRectMake(
+            side,
+            y,
+            window.bounds.size.width - side * 2.0,
+            miniH
+        )];
+        ELMini.autoresizingMask =
+            UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
+        [ELMini setTitle:@"Now Playing" subtitle:@"Spotify" artwork:nil];
+        [window addSubview:ELMini];
+        NSLog(@"[EliSpot] mini player shell installed");
+    }
 }
 
 %hook UIViewController
