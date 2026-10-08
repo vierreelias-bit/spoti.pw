@@ -27,8 +27,15 @@ static char kPaneKey;
 
 static UIButton *glassButton(NSString *title) {
     UIButtonConfiguration *config;
-    if (@available(iOS 26.0, *)) config = [UIButtonConfiguration prominentGlassButtonConfiguration];
-    else config = [UIButtonConfiguration filledButtonConfiguration];
+    SEL glassConfig = NSSelectorFromString(@"prominentGlassButtonConfiguration");
+    if (@available(iOS 26.0, *)) {
+        Class cls = UIButtonConfiguration.class;
+        if ([cls respondsToSelector:glassConfig]) {
+            id (*call0)(id, SEL) = (void *)[cls methodForSelector:glassConfig];
+            config = call0(cls, glassConfig);
+        }
+    }
+    if (!config) config = [UIButtonConfiguration filledButtonConfiguration];
     config.cornerStyle = UIButtonConfigurationCornerStyleCapsule;
     config.baseBackgroundColor = SGGreen();
     config.baseForegroundColor = UIColor.blackColor;
@@ -284,7 +291,17 @@ static UIButton *glassButton(NSString *title) {
 // iOS 16 has no symbol effects and skips the bounce.
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    if (@available(iOS 17.0, *)) [_hero addSymbolEffect:[NSClassFromString(@"NSSymbolBounceEffect") effect]];
+    if (@available(iOS 17.0, *)) {
+        Class effectClass = NSClassFromString(@"NSSymbolBounceEffect");
+        SEL effectSel = NSSelectorFromString(@"effect");
+        SEL addSel = NSSelectorFromString(@"addSymbolEffect:");
+        if (effectClass && [effectClass respondsToSelector:effectSel] && [_hero respondsToSelector:addSel]) {
+            id (*makeEffect)(id, SEL) = (void *)[effectClass methodForSelector:effectSel];
+            id effect = makeEffect(effectClass, effectSel);
+            void (*addEffect)(id, SEL, id) = (void *)[_hero methodForSelector:addSel];
+            addEffect(_hero, addSel, effect);
+        }
+    }
 }
 
 - (void)picked:(SGLookCard *)card {
