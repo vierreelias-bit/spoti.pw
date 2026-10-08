@@ -141,9 +141,16 @@ static void paint(SGRSearchCardParts *parts, UIColor *color) {
     ((CAGradientLayer *)parts.plate.layer).colors = @[(id)color.CGColor, (id)darker(color).CGColor];
     if (@available(iOS 26.0, *)) {
         if (parts.glass) {
-            // Use runtime-resolved glass from SGGlassEffect; older Linux iOS SDKs
-            // do not declare UIGlassEffect or its style enum.
-            UIVisualEffect *effect = SGGlassEffect();
+            // Clear style = 1 (regular = 0), resolved at runtime because
+            // the Ubuntu SDK predates UIGlassEffect.
+            Class glassClass = NSClassFromString(@"UIGlassEffect");
+            SEL create = NSSelectorFromString(@"effectWithStyle:");
+            UIVisualEffect *effect = nil;
+            if (glassClass && [glassClass respondsToSelector:create]) {
+                id (*makeGlass)(id, SEL, NSInteger) = (void *)[glassClass methodForSelector:create];
+                effect = makeGlass(glassClass, create, 1);
+            }
+            if (!effect) effect = SGGlassEffect();
             SEL tint = NSSelectorFromString(@"setTintColor:");
             if ([effect respondsToSelector:tint]) {
                 void (*setTint)(id, SEL, UIColor *) = (void *)[effect methodForSelector:tint];
