@@ -1,16 +1,29 @@
 # EliSpot rebuild
 
-Clean-room EliSpot prototype. This folder does not reuse the spoti.pw tweak implementation.
+Clean-room EliSpot prototype.
+
+## v0.2 runtime change
+
+The old build guessed that Spotify used a normal UITabBarController. This one does not.
+
+Inspection of the supplied 0.50.0 package showed Spotify's real tab UI class names:
+- `_TtC23NavigationUI_TabBarImpl10TabBarView`
+- `_TtC23NavigationUI_TabBarImpl21TabBarItemElementView`
+- `_TtC25CreateMenu_TabBarItemImpl24CreateMenuTabBarItemView`
+
+EliSpot now discovers those views at runtime, keeps Spotify's real tab bar alive but visually faded, and activates its original item views from the custom glass bar.
 
 ## Current milestone
+
 - Spotify-only bundle filter
-- load diagnostics in Console: `[EliSpot]`
-- discovers a tab host at runtime
-- replaces visible native `UITabBar` views with a custom dark glass bar
-- four tab buttons
+- `[EliSpot]` load diagnostics
+- Spotify-specific tab bar discovery
+- custom Liquid Glass bar
+- four buttons
 - draggable selection lens
 - RGB/chromatic ring
-- haptic tab changes
+- haptics
+- original Spotify tab item activation
 - `UIGlassEffect` when available, blur fallback otherwise
 
 ## Build
@@ -24,8 +37,6 @@ make package
 
 The .deb will be in `packages/`.
 
-## Target
-Start with Spotify 9.1.78 while the runtime hooks are being stabilized.
+Start testing against Spotify 9.1.78 while these hooks are stabilized.
 
-## Important
-This is intentionally a separate clean-room implementation. Premium/account/ad bypass features are out of scope.
+Premium/account/ad bypass features are intentionally out of scope.
