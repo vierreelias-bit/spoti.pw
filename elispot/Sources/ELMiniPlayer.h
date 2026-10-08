@@ -11,6 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage * _Nullable)artwork;
 - (void)setPaused:(BOOL)paused;
 - (void)setLiked:(BOOL)liked;
+- (void)setDeviceName:(NSString *)deviceName;
 - (void)setPosition:(NSTimeInterval)position duration:(NSTimeInterval)duration;
 - (void)setGlassOpacity:(CGFloat)opacity;
 @end
