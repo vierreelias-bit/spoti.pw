@@ -94,6 +94,30 @@ NSArray<UIView *> *ELSpotifyTabItems(UIView *tabBar) {
     return items;
 }
 
+static UILabel *ELFirstLabel(UIView *root) {
+    if ([root isKindOfClass:UILabel.class] && ((UILabel *)root).text.length) return (UILabel *)root;
+    for (UIView *child in root.subviews) {
+        UILabel *label = ELFirstLabel(child);
+        if (label) return label;
+    }
+    return nil;
+}
+
+NSInteger ELSpotifySelectedIndex(UIView *tabBar) {
+    NSArray<UIView *> *items = ELSpotifyTabItems(tabBar);
+    for (NSInteger i = 0; i < (NSInteger)items.count; i++) {
+        UILabel *label = ELFirstLabel(items[i]);
+        UIColor *color = label.textColor;
+        CGFloat white = 0, alpha = 0, r = 0, g = 0, b = 0;
+        BOOL got = [color getWhite:&white alpha:&alpha];
+        if (!got && [color getRed:&r green:&g blue:&b alpha:&alpha]) {
+            white = MIN(r, MIN(g, b));
+        }
+        if (alpha > 0.5 && white > 0.92) return i;
+    }
+    return NSNotFound;
+}
+
 static BOOL ELInvokeTapTargets(UIGestureRecognizer *recognizer) {
     Ivar targetsIvar = class_getInstanceVariable(UIGestureRecognizer.class, "_targets");
     if (!targetsIvar) return NO;
@@ -112,8 +136,6 @@ static BOOL ELInvokeTapTargets(UIGestureRecognizer *recognizer) {
         if (!target || !action || ![target respondsToSelector:action]) continue;
 
         ((void (*)(id, SEL, id))objc_msgSend)(target, action, recognizer);
-        NSLog(@"[EliSpot] forwarded tap -> %@ %@",
-              NSStringFromClass([target class]), NSStringFromSelector(action));
         fired = YES;
     }
     return fired;
@@ -127,7 +149,6 @@ static BOOL ELFireTapInTree(UIView *view) {
             return YES;
         }
     }
-
     for (UIView *child in view.subviews) {
         if (ELFireTapInTree(child)) return YES;
     }
@@ -148,29 +169,48 @@ BOOL ELActivateSpotifyTab(UIView *tabBar, NSInteger index) {
     if (index < 0 || index >= (NSInteger)items.count) return NO;
 
     UIView *item = items[index];
-
-    if (ELFireTapInTree(item)) {
-        NSLog(@"[EliSpot] activated tab %ld via Spotify tap recognizer", (long)index);
-        return YES;
-    }
+    if (ELFireTapInTree(item)) return YES;
 
     UIControl *control = ELFindControl(item);
     if (control) {
         [control sendActionsForControlEvents:UIControlEventTouchUpInside];
-        NSLog(@"[EliSpot] activated tab %ld via UIControl", (long)index);
         return YES;
     }
 
-    if ([item accessibilityActivate]) {
-        NSLog(@"[EliSpot] activated tab %ld via accessibility", (long)index);
-        return YES;
-    }
-
-    NSLog(@"[EliSpot] no action found for tab %ld", (long)index);
-    return NO;
+    return [item accessibilityActivate];
 }
 
 void ELFadeSpotifyTabBar(UIView *tabBar) {
     if (!tabBar) return;
-    for (UIView *subview in tabBar.subviews) subview.alpha = 0.001;
+    for (UIView *subview in tabBar.subviews) {
+        subview.alpha = 0.001;
+        subview.userInteractionEnabled = YES;
+    }
+}
+
+static void ELFindArtwork(UIView *root, UIImageView **best, CGFloat *bestArea) {
+    if ([root isKindOfClass:UIImageView.class]) {
+        UIImageView *imageView = (UIImageView *)root;
+        CGSize size = imageView.bounds.size;
+        CGFloat area = size.width * size.height;
+        BOOL squareish = fabs(size.width - size.height) < MAX(8.0, size.width * 0.18);
+        if (imageView.image && squareish && size.width >= 28 && size.width <= 140 && area > *bestArea) {
+            *best = imageView;
+            *bestArea = area;
+        }
+    }
+    for (UIView *child in root.subviews) ELFindArtwork(child, best, bestArea);
+}
+
+UIImage *ELBestArtworkImage(UIView *rootView) {
+    UIImageView *best = nil;
+    CGFloat area = 0;
+    ELFindArtwork(rootView, &best, &area);
+    return best.image;
+}
+
+void ELHideStockNowPlayingView(UIView *rootView) {
+    if (!rootView) return;
+    rootView.alpha = 0.001;
+    rootView.userInteractionEnabled = NO;
 }
