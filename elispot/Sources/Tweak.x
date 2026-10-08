@@ -9,6 +9,16 @@
 @interface ELPlayerObserver : NSObject
 @end
 
+@interface ELTouchBlockerView : UIView
+@end
+
+@implementation ELTouchBlockerView
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    if (self.hidden || self.alpha <= 0.01 || !self.userInteractionEnabled) return nil;
+    return CGRectContainsPoint(self.bounds, point) ? self : nil;
+}
+@end
+
 @interface ELAppearanceController : NSObject
 @property(nonatomic,strong) UIView *panel;
 @property(nonatomic,strong) UISlider *miniSlider;
@@ -18,6 +28,8 @@
 
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
+static ELTouchBlockerView *ELTabTouchBlocker = nil;
+static ELTouchBlockerView *ELMiniTouchBlocker = nil;
 static __weak UIView *ELStockNowPlayingView = nil;
 static __weak id ELSpotifyPlayer = nil;
 static id ELCurrentState = nil;
@@ -74,10 +86,14 @@ static void ELSetChromeHidden(BOOL hidden) {
     [UIView animateWithDuration:.22 animations:^{
         ELBar.alpha = hidden ? 0.0 : 1.0;
         ELMini.alpha = hidden ? 0.0 : 1.0;
+        ELTabTouchBlocker.alpha = hidden ? 0.0 : 1.0;
+        ELMiniTouchBlocker.alpha = hidden ? 0.0 : 1.0;
     }];
 
     ELBar.userInteractionEnabled = !hidden;
     ELMini.userInteractionEnabled = !hidden;
+    ELTabTouchBlocker.userInteractionEnabled = !hidden;
+    ELMiniTouchBlocker.userInteractionEnabled = !hidden;
 }
 
 static UIImage *ELSystemArtwork(void) {
@@ -217,6 +233,18 @@ static void ELPositionMiniAboveTabs(void) {
     if (!ELMini || !ELBar || !ELStockNowPlayingView.superview) return;
 
     UIView *host = ELStockNowPlayingView.superview;
+
+    if (!ELMiniTouchBlocker) {
+        ELMiniTouchBlocker = [ELTouchBlockerView new];
+        ELMiniTouchBlocker.backgroundColor = UIColor.clearColor;
+        ELMiniTouchBlocker.userInteractionEnabled = YES;
+    }
+
+    if (ELMiniTouchBlocker.superview != host) {
+        [ELMiniTouchBlocker removeFromSuperview];
+        [host addSubview:ELMiniTouchBlocker];
+    }
+
     if (ELMini.superview != host) {
         [ELMini removeFromSuperview];
         [host addSubview:ELMini];
@@ -225,10 +253,15 @@ static void ELPositionMiniAboveTabs(void) {
     CGRect barFrame = [ELBar.superview convertRect:ELBar.frame toView:host];
     CGFloat h = 62.0;
     CGFloat gap = 10.0;
-    ELMini.frame = CGRectMake(CGRectGetMinX(barFrame),
-                              CGRectGetMinY(barFrame) - h - gap,
-                              CGRectGetWidth(barFrame),
-                              h);
+    CGRect miniFrame = CGRectMake(CGRectGetMinX(barFrame),
+                                  CGRectGetMinY(barFrame) - h - gap,
+                                  CGRectGetWidth(barFrame),
+                                  h);
+
+    ELMiniTouchBlocker.frame = miniFrame;
+    ELMini.frame = miniFrame;
+
+    [host insertSubview:ELMiniTouchBlocker belowSubview:ELMini];
     [host bringSubviewToFront:ELMini];
 }
 
@@ -380,6 +413,10 @@ static void ELInstallUI(void) {
     CGFloat bottom = MAX(host.safeAreaInsets.bottom, 8.0) + 7.0;
 
     if (!ELBar) {
+        ELTabTouchBlocker = [ELTouchBlockerView new];
+        ELTabTouchBlocker.backgroundColor = UIColor.clearColor;
+        ELTabTouchBlocker.userInteractionEnabled = YES;
+
         ELBar = [[ELGlassTabBar alloc] initWithFrame:CGRectMake(
             side,
             host.bounds.size.height - bottom - tabHeight,
@@ -388,6 +425,8 @@ static void ELInstallUI(void) {
         )];
         ELBar.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
+
+        [host addSubview:ELTabTouchBlocker];
         [host addSubview:ELBar];
 
         if (!ELAppearance) ELAppearance = [ELAppearanceController new];
@@ -396,16 +435,22 @@ static void ELInstallUI(void) {
         hold.minimumPressDuration = .65;
         [ELBar addGestureRecognizer:hold];
     } else if (ELBar.superview != host) {
+        [ELTabTouchBlocker removeFromSuperview];
         [ELBar removeFromSuperview];
+        [host addSubview:ELTabTouchBlocker];
         [host addSubview:ELBar];
     }
 
-    ELBar.frame = CGRectMake(
+    CGRect tabFrame = CGRectMake(
         side,
         host.bounds.size.height - bottom - tabHeight,
         host.bounds.size.width - side * 2.0,
         tabHeight
     );
+
+    ELTabTouchBlocker.frame = tabFrame;
+    ELBar.frame = tabFrame;
+    [host insertSubview:ELTabTouchBlocker belowSubview:ELBar];
     ELBar.spotifyTabBar = spotifyBar;
     [ELBar syncFromSpotify];
 
@@ -424,6 +469,12 @@ static void ELInstallUI(void) {
         ELMini.openHandler = ^{
             ELOpenFullPlayer();
         };
+        if (!ELMiniTouchBlocker) {
+            ELMiniTouchBlocker = [ELTouchBlockerView new];
+            ELMiniTouchBlocker.backgroundColor = UIColor.clearColor;
+            ELMiniTouchBlocker.userInteractionEnabled = YES;
+        }
+        [host addSubview:ELMiniTouchBlocker];
         [host addSubview:ELMini];
         ELRefreshMiniPlayer();
         ELStartProgressTimer();
@@ -432,20 +483,29 @@ static void ELInstallUI(void) {
     if (ELStockNowPlayingView.superview) {
         ELPositionMiniAboveTabs();
     } else {
+        if (ELMiniTouchBlocker.superview != host) {
+            [ELMiniTouchBlocker removeFromSuperview];
+            [host addSubview:ELMiniTouchBlocker];
+        }
         if (ELMini.superview != host) {
             [ELMini removeFromSuperview];
             [host addSubview:ELMini];
         }
-        ELMini.frame = CGRectMake(side,
-                                  CGRectGetMinY(ELBar.frame) - 72.0,
-                                  host.bounds.size.width - side * 2.0,
-                                  62.0);
+
+        CGRect miniFrame = CGRectMake(side,
+                                      CGRectGetMinY(ELBar.frame) - 72.0,
+                                      host.bounds.size.width - side * 2.0,
+                                      62.0);
+        ELMiniTouchBlocker.frame = miniFrame;
+        ELMini.frame = miniFrame;
+        [host insertSubview:ELMiniTouchBlocker belowSubview:ELMini];
     }
 
     ELApplyAppearance();
 
     if (!ELFullPlayerVisible && !ELOpeningPlayer) {
         if (ELMini.superview) [ELMini.superview bringSubviewToFront:ELMini];
+        if (ELTabTouchBlocker.superview == host) [host insertSubview:ELTabTouchBlocker belowSubview:ELBar];
         [host bringSubviewToFront:ELBar];
     }
 }
@@ -573,7 +633,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.4");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.5");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
