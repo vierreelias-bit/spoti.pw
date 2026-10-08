@@ -17,8 +17,7 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 spotifyglass_FILES := $(shell find Sources \( -name '*.m' -o -name '*.x' \) \
     ! -path 'Sources/Shared/JamesDSP/*' \
-    ! -path 'Sources/Shared/LiveActivity/*' | sort) \
-    Sources/UbuntuCompat/FeatureStubs.m
+    ! -path 'Sources/Shared/LiveActivity/*' | sort)
 else
 spotifyglass_FILES := $(shell find Sources -name '*.m' -o -name '*.x' -o -name '*.swift' | sort)
 endif
@@ -42,5 +41,7 @@ sg-libjamesdsp:
 	@$(MAKE) --no-print-directory -C $(SG_JDSP) JDSP_PLATFORM=ios
 endif
 
+ifneq ($(UNAME_S),Linux)
 before-all::
 	@if [ -x ../scripts/check-layers.sh ]; then ../scripts/check-layers.sh Sources; fi
+endif
