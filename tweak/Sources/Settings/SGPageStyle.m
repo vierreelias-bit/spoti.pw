@@ -19,7 +19,7 @@ UIImageView *SGSymbolView(NSString *name, CGFloat size, UIImageSymbolWeight weig
 // A grey note in a wrapper view, for the table header and footer.
 UIView *SGNote(NSString *text) {
     UILabel *label = [UILabel new];
-    label.text = text;
+    label.text = SGT(text);
     label.font = SGSubtitleFont();
     label.textColor = SGGrey();
     label.numberOfLines = 0;
@@ -110,8 +110,8 @@ const CGFloat SGSectionGap = 20;
 // with an optional symbol in the leading slot.
 void SGFillCell(UITableViewCell *cell, NSString *title, NSString *subtitle, UIColor *color, NSString *symbolName) {
     UIListContentConfiguration *content = [UIListContentConfiguration subtitleCellConfiguration];
-    content.text = title;
-    content.secondaryText = subtitle;
+    content.text = SGT(title);
+    content.secondaryText = SGT(subtitle);
     content.textProperties.font = SGTitleFont();
     content.textProperties.color = color ?: UIColor.whiteColor;
     content.secondaryTextProperties.font = SGSubtitleFont();
@@ -131,7 +131,7 @@ void SGFillCell(UITableViewCell *cell, NSString *title, NSString *subtitle, UICo
 
 UIView *SGSectionHeader(UITableView *table, NSString *title) {
     UILabel *label = [UILabel new];
-    label.text = title.uppercaseString;
+    label.text = SGT(title).uppercaseString;
     label.font = SGSubtitleFont();
     label.textColor = SGGrey();
     label.frame = CGRectMake(16, 20, table.bounds.size.width - 32, 14);
@@ -145,7 +145,7 @@ static const CGFloat kFooterTop = 8, kFooterBottom = 4;
 
 static CGFloat footerTextHeight(UITableView *table, NSString *text) {
     CGFloat width = MAX(table.bounds.size.width - 32, 100);
-    return ceil([text boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX)
+    return ceil([SGT(text) boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX)
                                    options:NSStringDrawingUsesLineFragmentOrigin
                                 attributes:@{NSFontAttributeName: SGSubtitleFont()}
                                    context:nil].size.height);
@@ -153,7 +153,7 @@ static CGFloat footerTextHeight(UITableView *table, NSString *text) {
 
 UIView *SGSectionFooter(UITableView *table, NSString *text) {
     UILabel *label = [UILabel new];
-    label.text = text;
+    label.text = SGT(text);
     label.font = SGSubtitleFont();
     label.textColor = SGGrey();
     label.numberOfLines = 0;
