@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MediaPlayer.h>
+#import <AVFoundation/AVFoundation.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import "ELRuntime.h"
@@ -96,6 +97,13 @@ static UIImage *ELSystemArtwork(void) {
     return [(MPMediaItemArtwork *)raw imageWithSize:CGSizeMake(300, 300)];
 }
 
+static NSString *ELCurrentAudioDeviceName(void) {
+    AVAudioSessionRouteDescription *route = AVAudioSession.sharedInstance.currentRoute;
+    AVAudioSessionPortDescription *output = route.outputs.firstObject;
+    if (output.portName.length) return output.portName;
+    return @"iPhone";
+}
+
 static void ELRefreshMiniPlayer(void) {
     if (!ELMini) return;
 
@@ -114,6 +122,7 @@ static void ELRefreshMiniPlayer(void) {
             subtitle:artist ?: @"Nyt soi"
              artwork:ELCurrentArtwork];
     [ELMini setPaused:paused];
+    [ELMini setDeviceName:ELCurrentAudioDeviceName()];
     [ELMini setPosition:position duration:duration];
 }
 
@@ -129,17 +138,35 @@ static void ELTogglePlayback(void) {
     ((id (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
 }
 
-static BOOL ELTryPlayerAction(NSArray<NSString *> *names) {
+static BOOL ELSkipNext(void) {
     id player = ELSpotifyPlayer;
     if (!player) return NO;
 
-    for (NSString *name in names) {
-        SEL sel = NSSelectorFromString(name);
-        if ([player respondsToSelector:sel]) {
-            ((void (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
-            return YES;
-        }
+    SEL direct = @selector(skipToNextTrack);
+    if ([player respondsToSelector:direct]) {
+        ((void (*)(id, SEL))objc_msgSend)(player, direct);
+        return YES;
     }
+
+    SEL options = @selector(skipToNextTrackWithOptions:);
+    if ([player respondsToSelector:options]) {
+        ((id (*)(id, SEL, id))objc_msgSend)(player, options, nil);
+        return YES;
+    }
+
+    return NO;
+}
+
+static BOOL ELSkipPrevious(void) {
+    id player = ELSpotifyPlayer;
+    if (!player) return NO;
+
+    SEL options = @selector(skipToPreviousTrackWithOptions:);
+    if ([player respondsToSelector:options]) {
+        ((id (*)(id, SEL, id))objc_msgSend)(player, options, nil);
+        return YES;
+    }
+
     return NO;
 }
 
@@ -417,7 +444,7 @@ static void ELInstallUI(void) {
         };
 
         ELMini.previousHandler = ^{
-            ELTryPlayerAction(@[@"skipToPrevious:", @"previous:", @"previousTrack:"]);
+            ELSkipPrevious();
         };
 
         ELMini.playPauseHandler = ^{
@@ -425,7 +452,7 @@ static void ELInstallUI(void) {
         };
 
         ELMini.nextHandler = ^{
-            ELTryPlayerAction(@[@"skipToNext:", @"next:", @"nextTrack:"]);
+            ELSkipNext();
         };
 
         ELMini.openHandler = ^{
@@ -556,6 +583,20 @@ static void ELInstallUI(void) {
 }
 %end
 
+%hook UIWindow
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    if (ELOverlayHost && !ELOverlayHost.hidden && ELOverlayHost.alpha > .01 && ELOverlayHost.userInteractionEnabled) {
+        CGPoint p = [ELOverlayHost convertPoint:point fromView:self];
+        if (CGRectContainsPoint(ELOverlayHost.bounds, p)) {
+            UIView *hit = [ELOverlayHost hitTest:p withEvent:event];
+            if (hit) return hit;
+            return ELOverlayHost;
+        }
+    }
+    return %orig;
+}
+%end
+
 %hook UIViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
@@ -566,7 +607,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.6");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.7");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
