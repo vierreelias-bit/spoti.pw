@@ -473,6 +473,15 @@ static void ELInstallUI(void) {
 
     ELCaptureArtworkFromView(stock);
     ELHideStockNowPlayingView(stock);
+
+    // The stock mini-player belongs to the root tab UI. If it is laying out,
+    // make sure EliSpot's bottom chrome is restored after returning from full player.
+    if (!ELOpeningPlayer) {
+        ELFullPlayerVisible = NO;
+        ELOverlayHost.alpha = 1.0;
+        ELOverlayHost.userInteractionEnabled = YES;
+    }
+
     ELInstallUI();
     ELLayoutOverlayHost();
     ELRefreshMiniPlayer();
@@ -496,6 +505,15 @@ static void ELInstallUI(void) {
     %orig;
     ELSetChromeHidden(NO);
     ELApplyAppearance();
+}
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    ELSetChromeHidden(NO);
+    ELApplyAppearance();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        ELInstallUI();
+        ELLayoutOverlayHost();
+    });
 }
 %end
 
@@ -567,7 +585,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.10");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.11");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
