@@ -22,6 +22,7 @@ static NSString *ELTime(NSTimeInterval seconds) {
 @property(nonatomic,strong) UIImageView *artworkView;
 @property(nonatomic,strong) UILabel *titleLabel;
 @property(nonatomic,strong) UILabel *subtitleLabel;
+@property(nonatomic,strong) UILabel *deviceLabel;
 @property(nonatomic,strong) UILabel *timeLabel;
 @property(nonatomic,strong) UIView *progressTrack;
 @property(nonatomic,strong) UIView *progressFill;
@@ -86,6 +87,12 @@ static NSString *ELTime(NSTimeInterval seconds) {
     _subtitleLabel.textColor = [UIColor colorWithWhite:1 alpha:.58];
     [_glass.contentView addSubview:_subtitleLabel];
 
+    _deviceLabel = [UILabel new];
+    _deviceLabel.font = [UIFont systemFontOfSize:9.5 weight:UIFontWeightMedium];
+    _deviceLabel.textColor = ELGreen();
+    _deviceLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+    [_glass.contentView addSubview:_deviceLabel];
+
     _timeLabel = [UILabel new];
     _timeLabel.font = [UIFont monospacedDigitSystemFontOfSize:9.5 weight:UIFontWeightMedium];
     _timeLabel.textColor = [UIColor colorWithWhite:1 alpha:.50];
@@ -142,13 +149,14 @@ static NSString *ELTime(NSTimeInterval seconds) {
     CGFloat textWidth = MAX(20, textRight - textX);
 
     self.titleLabel.frame = CGRectMake(textX, 6, textWidth, 17);
-    self.subtitleLabel.frame = CGRectMake(textX, 22, textWidth, 14);
+    self.subtitleLabel.frame = CGRectMake(textX, 21, textWidth, 13);
+    self.deviceLabel.frame = CGRectMake(textX, 34, textWidth, 12);
 
     CGFloat tw = 76;
-    self.timeLabel.frame = CGRectMake(self.bounds.size.width - tw - 9, h - 16, tw, 11);
+    self.timeLabel.frame = CGRectMake(self.bounds.size.width - tw - 9, h - 14, tw, 10);
 
     CGFloat progressRight = CGRectGetMinX(self.timeLabel.frame) - 8;
-    self.progressTrack.frame = CGRectMake(textX, h - 10, MAX(30, progressRight - textX), 3);
+    self.progressTrack.frame = CGRectMake(textX, h - 8, MAX(30, progressRight - textX), 3);
     self.progressFill.frame = CGRectMake(0, 0, self.progressTrack.bounds.size.width * self.progress, 3);
 }
 
@@ -164,6 +172,10 @@ static NSString *ELTime(NSTimeInterval seconds) {
         [UIImageSymbolConfiguration configurationWithPointSize:12.5 weight:UIImageSymbolWeightBold];
     [self.playButton setImage:[UIImage systemImageNamed:symbol withConfiguration:cfg]
                      forState:UIControlStateNormal];
+}
+
+- (void)setDeviceName:(NSString *)deviceName {
+    self.deviceLabel.text = deviceName.length ? deviceName : @"iPhone";
 }
 
 - (void)setLiked:(BOOL)liked {
