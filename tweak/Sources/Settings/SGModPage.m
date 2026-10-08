@@ -616,7 +616,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
         UILabel *label = [UILabel new];
         label.font = SGTitleFont();
         label.textColor = SGGrey();
-        label.text = row.value();
+        label.text = SGT(row.value());
         [label sizeToFit];
         cell.accessoryView = label;
         cell.selectionStyle = row.action ? UITableViewCellSelectionStyleDefault : UITableViewCellSelectionStyleNone;
