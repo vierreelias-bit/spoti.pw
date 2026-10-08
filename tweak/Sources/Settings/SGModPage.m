@@ -106,7 +106,7 @@ SGModRow *SGPageRow(NSString *title, UIViewController *(^page)(void)) {
 - (instancetype)initWithTitle:(NSString *)title key:(NSString *)key choices:(NSArray<NSString *> *)choices notes:(NSArray<NSString *> *)notes
                        footer:(NSString *)footer fallback:(NSInteger)fallback chosen:(void (^)(NSInteger index))chosen {
     if (!(self = [super initWithStyle:UITableViewStyleInsetGrouped])) return nil;
-    self.title = title;
+    self.title = SGT(title);
     _key = key;
     _choices = choices;
     _notes = notes;
@@ -176,7 +176,7 @@ SGModRow *SGChoiceRow(NSString *title, NSString *subtitle, NSString *key, NSArra
     row.subtitle = subtitle;
     row.value = ^NSString *{
         NSInteger index = SGInt(key, fallback);
-        return index >= 0 && index < (NSInteger)choices.count ? choices[(NSUInteger)index] : choices.firstObject;
+        return SGT(index >= 0 && index < (NSInteger)choices.count ? choices[(NSUInteger)index] : choices.firstObject);
     };
     __weak SGModRow *weakRow = row;
     row.page = ^UIViewController *{
@@ -238,7 +238,7 @@ static UIView *valueAndChevron(NSString *text) {
     UILabel *label = [UILabel new];
     label.font = SGTitleFont();
     label.textColor = SGGrey();
-    label.text = text;
+    label.text = SGT(text);
     [label sizeToFit];
     UIImageView *chevron = SGSymbolView(@"chevron.right", 13, UIImageSymbolWeightSemibold, 16);
     CGFloat height = MAX(label.bounds.size.height, chevron.bounds.size.height);
@@ -356,8 +356,8 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
     _title.font = SGTitleFont();
     _subtitle.font = SGSubtitleFont();
     _value.font = tabular(SGTitleFont());
-    _title.text = row.title;
-    _subtitle.text = row.subtitle;
+    _title.text = SGT(row.title);
+    _subtitle.text = SGT(row.subtitle);
     _subtitle.hidden = !row.subtitle;
     _slider.minimumTrackTintColor = SGGreen();
     _slider.minimumValue = (float)row.minimum;
@@ -365,8 +365,8 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
     _slider.spokenStep = (float)(count > 0 && count <= 40 ? row.step : snapped(row, row.minimum + (row.maximum - row.minimum) / 20) - row.minimum);
     _shown = snapped(row, row.number());
     _slider.value = (float)_shown;
-    _slider.accessibilityLabel = row.title;
-    _slider.accessibilityHint = row.subtitle;
+    _slider.accessibilityLabel = SGT(row.title);
+    _slider.accessibilityHint = SGT(row.subtitle);
     [self showValue];
 }
 
@@ -419,7 +419,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
 
 - (instancetype)initWithTitle:(NSString *)title intro:(NSString *)intro sections:(NSArray<SGModSection *> *)sections footer:(NSString *)footer {
     if (!(self = [super initWithStyle:UITableViewStyleInsetGrouped])) return nil;
-    self.title = title;
+    self.title = SGT(title);
     _sections = sections;
     _shown = [self rowsToShow];
     _intro = intro ? SGNote(intro) : nil;
@@ -524,7 +524,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
         SGModRow *row = [self rowAt:[self.tableView indexPathForCell:cell]];
         UILabel *label = (UILabel *)cell.accessoryView;
         if (!row.value || row.page || ![label isKindOfClass:UILabel.class]) continue;
-        label.text = row.value();
+        label.text = SGT(row.value());
         [label sizeToFit];
         [cell setNeedsLayout];
     }
@@ -595,7 +595,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
         if (row.glows) {
             SGGlowSwitch *glow = [SGGlowSwitch new];
             glow.on = on;
-            glow.accessibilityLabel = row.title;
+            glow.accessibilityLabel = SGT(row.title);
             toggle = glow;
         } else {
             UISwitch *plain = [UISwitch new];
@@ -610,7 +610,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
         cell.accessoryView = row.info ? [self infoButtonBeside:toggle] : toggle;
         cell.selectionStyle = locked ? UITableViewCellSelectionStyleDefault : UITableViewCellSelectionStyleNone;
     } else if (row.page) {
-        cell.accessoryView = row.value ? valueAndChevron(row.value()) : SGSymbolView(@"chevron.right", 13, UIImageSymbolWeightSemibold, 16);
+        cell.accessoryView = row.value ? valueAndChevron(SGT(row.value())) : SGSymbolView(@"chevron.right", 13, UIImageSymbolWeightSemibold, 16);
         cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     } else if (row.value) {
         UILabel *label = [UILabel new];
@@ -646,7 +646,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
     UIImageSymbolConfiguration *symbol = [UIImageSymbolConfiguration configurationWithPointSize:17 weight:UIImageSymbolWeightRegular];
     [info setImage:[UIImage systemImageNamed:@"info.circle" withConfiguration:symbol] forState:UIControlStateNormal];
     info.tintColor = SGGrey();
-    info.accessibilityLabel = @"About this switch";
+    info.accessibilityLabel = SGT(@"About this switch");
     [info addTarget:self action:@selector(infoTapped:) forControlEvents:UIControlEventTouchUpInside];
     [toggle sizeToFit];
     CGFloat side = 30, gap = 8, height = MAX(side, toggle.bounds.size.height);
@@ -662,7 +662,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
     NSIndexPath *path = [self pathOf:button];
     if (!path) return;
     SGModRow *row = [self rowAt:path];
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:row.title message:row.info preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(row.title) message:SGT(row.info) preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
@@ -690,8 +690,8 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
 // A locked row will not move, and nothing on it says why.
 - (void)explainLock {
     UIAlertController *alert = [UIAlertController
-        alertControllerWithTitle:@"Overridden by another setting"
-                         message:@"Another switch is forcing this flag, so the row shows what it forces instead of taking a value of its own."
+        alertControllerWithTitle:SGT(@"Overridden by another setting")
+                         message:SGT(@"Another switch is forcing this flag, so the row shows what it forces instead of taking a value of its own.")
                   preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
@@ -701,7 +701,7 @@ static const CGFloat kSliderTop = 12, kSliderLine = 18, kSliderSubtitle = 14, kS
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:[row.title stringByAppendingString:@" is unstable"]
                                                                   message:row.warning
                                                            preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Open GitHub" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Open GitHub") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         SGOpenURL(SGRepoURL);
     }]];
     [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
