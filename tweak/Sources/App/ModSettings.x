@@ -21,6 +21,7 @@
 #import "Shared/Flags/Flags.h"
 #import "Shared/JamesDSP/JamesDSPPage.h"
 #import "Shared/LiveActivity/LiveActivity.h"
+#import "Redesigned/Album/Album.h"
 #import "App/About/About.h"
 #import "Pages.h"
 
@@ -54,7 +55,11 @@ static UIViewController *modSettingsPage(void) {
         liveActivity.value = ^NSString *{ return SGLiveActivitySummary(); };
         [parts addObject:liveActivity];
     }
-    if (!SGRedesignedUIStored()) [parts addObject:pageRow(@"Home & Library", @"house", ^UIViewController *{ return SGHomeSettingsPage(); })];
+    if (SGRedesignedUIStored()) {
+        [parts addObject:pageRow(@"Albums", @"square.stack", ^UIViewController *{ return SGRAlbumSettingsPage(); })];
+    } else {
+        [parts addObject:pageRow(@"Home & Library", @"house", ^UIViewController *{ return SGHomeSettingsPage(); })];
+    }
     [sections addObjectsFromArray:@[
         SGAppearanceSection(),
         SGSection(nil, parts),
