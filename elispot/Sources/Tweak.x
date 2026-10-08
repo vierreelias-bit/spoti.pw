@@ -182,47 +182,42 @@ static void ELOpenFullPlayer(void) {
     if (!stock || !host || !ELMini || ELOpeningPlayer) return;
 
     ELOpeningPlayer = YES;
-    CGRect start = [ELMini.superview convertRect:ELMini.frame toView:host];
 
-    UIVisualEffectView *portal = [[UIVisualEffectView alloc] initWithEffect:ELTransitionGlass()];
-    portal.frame = start;
-    portal.layer.cornerRadius = CGRectGetHeight(start) / 2.0;
-    portal.layer.cornerCurve = kCACornerCurveContinuous;
-    portal.layer.borderWidth = .65;
-    portal.layer.borderColor = [UIColor colorWithWhite:1 alpha:.16].CGColor;
-    portal.clipsToBounds = YES;
-    portal.userInteractionEnabled = NO;
+    CGRect startFrame = [ELMini.superview convertRect:ELMini.frame toView:host];
+    UIView *snapshot = [ELMini snapshotViewAfterScreenUpdates:NO];
+    snapshot.frame = startFrame;
+    snapshot.layer.cornerRadius = 31;
+    snapshot.layer.cornerCurve = kCACornerCurveContinuous;
+    snapshot.layer.masksToBounds = YES;
 
-    UIImageView *art = [[UIImageView alloc] initWithImage:ELCurrentArtwork];
-    art.contentMode = UIViewContentModeScaleAspectFill;
-    art.frame = CGRectMake(6, 6, MAX(1, CGRectGetHeight(start) - 12), MAX(1, CGRectGetHeight(start) - 12));
-    art.layer.cornerRadius = 14;
-    art.clipsToBounds = YES;
-    [portal.contentView addSubview:art];
+    UIView *backdrop = [[UIView alloc] initWithFrame:host.bounds];
+    backdrop.backgroundColor = [UIColor colorWithWhite:0 alpha:0.0];
+    backdrop.userInteractionEnabled = NO;
 
-    [host addSubview:portal];
-    [host bringSubviewToFront:portal];
-    ELOverlayHost.alpha = .35;
+    [host addSubview:backdrop];
+    [host addSubview:snapshot];
+    [host bringSubviewToFront:snapshot];
 
-    CGFloat safeTop = MAX(host.safeAreaInsets.top, 12.0);
-    CGRect target = CGRectMake(12, safeTop + 8, host.bounds.size.width - 24, MIN(116.0, host.bounds.size.height * .14));
+    ELOverlayHost.alpha = 0.0;
 
-    [UIView animateWithDuration:.34
+    [UIView animateWithDuration:.46
                           delay:0
-         usingSpringWithDamping:.82
-          initialSpringVelocity:.18
-                        options:UIViewAnimationOptionBeginFromCurrentState
+         usingSpringWithDamping:.90
+          initialSpringVelocity:.08
+                        options:UIViewAnimationOptionCurveEaseInOut
                      animations:^{
-        portal.frame = target;
-        portal.layer.cornerRadius = 36;
-        art.frame = CGRectMake(10, 10, CGRectGetHeight(target) - 20, CGRectGetHeight(target) - 20);
-        ELOverlayHost.alpha = 0.0;
+        backdrop.backgroundColor = [UIColor colorWithWhite:0 alpha:.40];
+        snapshot.frame = host.bounds;
+        snapshot.layer.cornerRadius = 0;
     } completion:^(__unused BOOL finished) {
         ELActivateView(stock);
-        [UIView animateWithDuration:.18 animations:^{
-            portal.alpha = 0.0;
+
+        [UIView animateWithDuration:.16 animations:^{
+            snapshot.alpha = 0.0;
+            backdrop.alpha = 0.0;
         } completion:^(__unused BOOL done) {
-            [portal removeFromSuperview];
+            [snapshot removeFromSuperview];
+            [backdrop removeFromSuperview];
             ELOpeningPlayer = NO;
         }];
     }];
@@ -439,20 +434,17 @@ static void ELInstallUI(void) {
     if (!ELMini) {
         ELMini = [[ELMiniPlayer alloc] initWithFrame:CGRectZero];
 
-        ELMini.likeHandler = ^{
+        ELMini.saveHandler = ^(BOOL saved) {
             [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
-        };
-
-        ELMini.previousHandler = ^{
-            ELSkipPrevious();
+            [ELMini setLiked:saved];
         };
 
         ELMini.playPauseHandler = ^{
             ELTogglePlayback();
         };
 
-        ELMini.nextHandler = ^{
-            ELSkipNext();
+        ELMini.deviceHandler = ^{
+            [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
         };
 
         ELMini.openHandler = ^{
@@ -607,7 +599,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.7");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.9");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
