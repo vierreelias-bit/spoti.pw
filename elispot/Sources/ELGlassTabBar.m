@@ -30,13 +30,13 @@
         _maskLayer = [CAShapeLayer layer];
         _maskLayer.fillColor = UIColor.clearColor.CGColor;
         _maskLayer.strokeColor = UIColor.whiteColor.CGColor;
-        _maskLayer.lineWidth = 1.1;
+        _maskLayer.lineWidth = .85;
         _gradient.mask = _maskLayer;
-        _gradient.opacity = .72;
-        self.alpha = .86;
+        _gradient.opacity = .42;
+        self.alpha = .70;
         self.layer.shadowColor = UIColor.whiteColor.CGColor;
-        self.layer.shadowOpacity = .16;
-        self.layer.shadowRadius = 4.0;
+        self.layer.shadowOpacity = .22;
+        self.layer.shadowRadius = 9.0;
         self.layer.shadowOffset = CGSizeZero;
 
         CABasicAnimation *spin = [CABasicAnimation animationWithKeyPath:@"transform.rotation.z"];
@@ -95,7 +95,7 @@ static UIVisualEffect *ELGlassEffect(void) {
 
     UIView *shade = [UIView new];
     shade.tag = 1001;
-    shade.backgroundColor = [UIColor colorWithWhite:0 alpha:.12];
+    shade.backgroundColor = [UIColor colorWithWhite:0 alpha:.055];
     [_pill.contentView addSubview:shade];
 
     _lens = [[UIVisualEffectView alloc] initWithEffect:ELGlassEffect()];
@@ -109,7 +109,7 @@ static UIVisualEffect *ELGlassEffect(void) {
 
     UIView *shine = [UIView new];
     shine.tag = 1002;
-    shine.backgroundColor = [UIColor colorWithWhite:1 alpha:.055];
+    shine.backgroundColor = [UIColor colorWithWhite:1 alpha:.035];
     [_lens.contentView addSubview:shine];
 
     _ring = [ELRGBRing new];
