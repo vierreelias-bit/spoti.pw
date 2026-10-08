@@ -9,8 +9,8 @@
 #import "Core/SGCore.h"
 #import "About.h"
 
-NSString *const SGUpdateURL = @"https://spoti.pw/api/update";
-static NSString *const kGitHubURL = @"https://api.github.com/repos/skopevoj/spoti.pw/releases?per_page=20";
+NSString *const SGUpdateURL = @"https://api.github.com/repos/vierreelias-bit/spoti.pw/releases?per_page=20";
+static NSString *const kGitHubURL = @"https://api.github.com/repos/vierreelias-bit/spoti.pw/releases?per_page=20";
 NSString *const SGUpdateCheckedNotification = @"spotifyglass.update.checked.notification";
 
 static NSString *const kChecked = @"spotifyglass.update.checked";
@@ -229,10 +229,10 @@ void SGCheckForUpdate(BOOL force) {
     };
     NSData *body = SGUsageBody();
     if (body) SGUsageNoteAsked();
-    SGLog(@"update check: asking spoti.pw %@", body ? @"with the usage body" : @"without the usage body");
+    SGLog(@"update check: asking EliSpot GitHub %@", body ? @"with the usage body" : @"without the usage body");
     ask(SGUpdateURL, body, ^(NSArray<NSDictionary *> *releases, NSInteger status, NSError *error) {
         if (releases) return finish(releases, status, error);
-        SGLog(@"update check: spoti.pw answered HTTP %ld, asking GitHub", (long)status);
+        SGLog(@"update check: EliSpot GitHub answered HTTP %ld, retrying GitHub", (long)status);
         ask(kGitHubURL, nil, finish);
     });
 }
