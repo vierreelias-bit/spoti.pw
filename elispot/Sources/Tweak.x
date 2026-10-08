@@ -36,6 +36,12 @@ static NSString *ELStringValue(id obj, SEL sel) {
     return [value isKindOfClass:NSString.class] ? value : nil;
 }
 
+static UIView *ELChromeHost(void) {
+    UIWindow *window = ELKeyWindow();
+    UIViewController *root = window.rootViewController;
+    return root.viewIfLoaded ?: root.view;
+}
+
 static void ELSetChromeHidden(BOOL hidden) {
     ELFullPlayerVisible = hidden;
 
@@ -59,8 +65,8 @@ static void ELRefreshMiniPlayer(void) {
     double position = ELMsgDouble(state, @selector(position));
     double duration = ELMsgDouble(state, @selector(duration));
 
-    [ELMini setTitle:title ?: @"Nothing playing"
-            subtitle:artist ?: @"Spotify"
+    [ELMini setTitle:title ?: @"Ei kappaletta"
+            subtitle:artist ?: @"Nyt soi"
              artwork:ELCurrentArtwork];
     [ELMini setPaused:paused];
     [ELMini setPosition:position duration:duration];
@@ -94,6 +100,13 @@ static void ELStartProgressTimer(void) {
     }];
 }
 
+static void ELCaptureArtworkFromView(UIView *view) {
+    UIImage *artwork = ELBestArtworkImage(view);
+    if (!artwork || artwork == ELCurrentArtwork) return;
+    ELCurrentArtwork = artwork;
+    ELRefreshMiniPlayer();
+}
+
 @implementation ELPlayerObserver
 - (void)player:(id)player stateDidChange:(id)state {
     ELSpotifyPlayer = player;
@@ -108,9 +121,10 @@ static ELPlayerObserver *ELObserver = nil;
 
 static void ELInstallUI(void) {
     UIWindow *window = ELKeyWindow();
-    if (!window || !window.rootViewController) return;
+    UIView *host = ELChromeHost();
+    if (!window || !host) return;
 
-    UIView *spotifyBar = ELFindSpotifyTabBar(window.rootViewController.view);
+    UIView *spotifyBar = ELFindSpotifyTabBar(host);
     if (!spotifyBar) return;
 
     NSArray<UIView *> *items = ELSpotifyTabItems(spotifyBar);
@@ -120,30 +134,40 @@ static void ELInstallUI(void) {
 
     CGFloat side = 16.0;
     CGFloat tabHeight = 64.0;
-    CGFloat bottom = MAX(window.safeAreaInsets.bottom, 8.0) + 7.0;
+    CGFloat bottom = MAX(host.safeAreaInsets.bottom, 8.0) + 7.0;
 
     if (!ELBar) {
         ELBar = [[ELGlassTabBar alloc] initWithFrame:CGRectMake(
             side,
-            window.bounds.size.height - bottom - tabHeight,
-            window.bounds.size.width - side * 2.0,
+            host.bounds.size.height - bottom - tabHeight,
+            host.bounds.size.width - side * 2.0,
             tabHeight
         )];
         ELBar.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-        [window addSubview:ELBar];
+        [host addSubview:ELBar];
+    } else if (ELBar.superview != host) {
+        [ELBar removeFromSuperview];
+        [host addSubview:ELBar];
     }
 
+    ELBar.frame = CGRectMake(
+        side,
+        host.bounds.size.height - bottom - tabHeight,
+        host.bounds.size.width - side * 2.0,
+        tabHeight
+    );
     ELBar.spotifyTabBar = spotifyBar;
     [ELBar syncFromSpotify];
 
+    CGFloat miniH = 62.0;
+    CGFloat miniY = CGRectGetMinY(ELBar.frame) - miniH - 8.0;
+
     if (!ELMini) {
-        CGFloat miniH = 62.0;
-        CGFloat y = CGRectGetMinY(ELBar.frame) - miniH - 8.0;
         ELMini = [[ELMiniPlayer alloc] initWithFrame:CGRectMake(
             side,
-            y,
-            window.bounds.size.width - side * 2.0,
+            miniY,
+            host.bounds.size.width - side * 2.0,
             miniH
         )];
         ELMini.autoresizingMask =
@@ -156,14 +180,24 @@ static void ELInstallUI(void) {
             ELOpenFullPlayer();
         };
 
-        [window addSubview:ELMini];
+        [host addSubview:ELMini];
         ELRefreshMiniPlayer();
         ELStartProgressTimer();
+    } else if (ELMini.superview != host) {
+        [ELMini removeFromSuperview];
+        [host addSubview:ELMini];
     }
 
+    ELMini.frame = CGRectMake(
+        side,
+        miniY,
+        host.bounds.size.width - side * 2.0,
+        miniH
+    );
+
     if (!ELFullPlayerVisible) {
-        [window bringSubviewToFront:ELMini];
-        [window bringSubviewToFront:ELBar];
+        [host bringSubviewToFront:ELMini];
+        [host bringSubviewToFront:ELBar];
     }
 }
 
@@ -205,12 +239,20 @@ static void ELInstallUI(void) {
     UIView *stock = ((UIViewController *)self).view;
     ELStockNowPlayingView = stock;
 
-    UIImage *artwork = ELBestArtworkImage(stock);
-    if (artwork) ELCurrentArtwork = artwork;
-
+    ELCaptureArtworkFromView(stock);
     ELHideStockNowPlayingView(stock);
     ELInstallUI();
     ELRefreshMiniPlayer();
+}
+%end
+
+%hook _TtC35CreativeWorkCommons_CoverArtTiltKit16CoverArtTiltView
+- (void)layoutSubviews {
+    %orig;
+    UIView *view = (UIView *)self;
+    if (view.bounds.size.width >= 40) {
+        ELCaptureArtworkFromView(view);
+    }
 }
 %end
 
@@ -235,7 +277,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.1");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
