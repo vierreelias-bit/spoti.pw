@@ -1,6 +1,7 @@
 #import "ELGlassTabBar.h"
 #import "ELRuntime.h"
 #import <QuartzCore/QuartzCore.h>
+#import <objc/message.h>
 
 @interface ELRGBRing : UIView
 @property(nonatomic,strong) CAGradientLayer *gradient;
@@ -58,8 +59,36 @@
 
 static UIVisualEffect *ELGlassEffect(void) {
     Class glass = NSClassFromString(@"UIGlassEffect");
-    if (glass) return [[glass alloc] init];
-    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+    SEL factory = NSSelectorFromString(@"effectWithStyle:");
+    if (glass && [glass respondsToSelector:factory]) {
+        return ((id (*)(id, SEL, NSInteger))objc_msgSend)(glass, factory, 0);
+    }
+    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
+}
+
+static void ELShapeGlass(UIView *glass, CGFloat radius, BOOL capsule) {
+    Class config = NSClassFromString(@"UICornerConfiguration");
+    Class cornerRadius = NSClassFromString(@"UICornerRadius");
+    id shape = nil;
+
+    if (config && [glass respondsToSelector:NSSelectorFromString(@"setCornerConfiguration:")]) {
+        if (capsule && [config respondsToSelector:NSSelectorFromString(@"capsuleConfiguration")]) {
+            shape = ((id (*)(id, SEL))objc_msgSend)(config, NSSelectorFromString(@"capsuleConfiguration"));
+        } else if ([config respondsToSelector:NSSelectorFromString(@"configurationWithUniformRadius:")] &&
+                   [cornerRadius respondsToSelector:NSSelectorFromString(@"fixedRadius:")]) {
+            id fixed = ((id (*)(id, SEL, CGFloat))objc_msgSend)(cornerRadius, NSSelectorFromString(@"fixedRadius:"), radius);
+            shape = ((id (*)(id, SEL, id))objc_msgSend)(config, NSSelectorFromString(@"configurationWithUniformRadius:"), fixed);
+        }
+    }
+
+    if (shape) {
+        ((void (*)(id, SEL, id))objc_msgSend)(glass, NSSelectorFromString(@"setCornerConfiguration:"), shape);
+        glass.clipsToBounds = NO;
+    } else {
+        glass.layer.cornerRadius = capsule ? glass.bounds.size.height / 2.0 : radius;
+        glass.layer.cornerCurve = kCACornerCurveContinuous;
+        glass.clipsToBounds = YES;
+    }
 }
 
 @interface ELGlassTabBar ()
@@ -86,11 +115,8 @@ static UIVisualEffect *ELGlassEffect(void) {
     self.layer.shadowOffset = CGSizeMake(0, 10);
 
     _pill = [[UIVisualEffectView alloc] initWithEffect:ELGlassEffect()];
-    _pill.layer.cornerRadius = 34;
-    _pill.layer.cornerCurve = kCACornerCurveContinuous;
     _pill.layer.borderWidth = .7;
     _pill.layer.borderColor = [UIColor colorWithWhite:1 alpha:.18].CGColor;
-    _pill.clipsToBounds = YES;
     [self addSubview:_pill];
 
     UIView *shade = [UIView new];
@@ -100,11 +126,8 @@ static UIVisualEffect *ELGlassEffect(void) {
 
     _lens = [[UIVisualEffectView alloc] initWithEffect:ELGlassEffect()];
     _lens.userInteractionEnabled = NO;
-    _lens.layer.cornerRadius = 32;
-    _lens.layer.cornerCurve = kCACornerCurveContinuous;
     _lens.layer.borderWidth = .8;
     _lens.layer.borderColor = [UIColor colorWithWhite:1 alpha:.28].CGColor;
-    _lens.clipsToBounds = YES;
     [self addSubview:_lens];
 
     UIView *shine = [UIView new];
@@ -152,6 +175,7 @@ static UIVisualEffect *ELGlassEffect(void) {
     [super layoutSubviews];
 
     self.pill.frame = CGRectInset(self.bounds, 0, 2);
+    ELShapeGlass(self.pill, 34, YES);
     [self.pill.contentView viewWithTag:1001].frame = self.pill.bounds;
 
     CGFloat pad = 8;
@@ -181,6 +205,7 @@ static UIVisualEffect *ELGlassEffect(void) {
                                  (self.bounds.size.height - size) / 2.0,
                                  size,
                                  size);
+    ELShapeGlass(self.lens, size / 2.0, YES);
     self.ring.frame = CGRectInset(self.lens.frame, -2.0, -2.0);
 }
 
@@ -188,9 +213,12 @@ static UIVisualEffect *ELGlassEffect(void) {
     for (NSInteger i = 0; i < self.buttons.count; i++) {
         UIButton *button = self.buttons[i];
         BOOL active = i == index;
-        button.alpha = active ? .98 : .52;
-        button.backgroundColor = [UIColor colorWithWhite:1 alpha:(active ? .045 : .015)];
-        button.transform = active ? CGAffineTransformMakeScale(1.03, 1.03)
+        button.alpha = active ? 1.0 : .68;
+        button.tintColor = active
+            ? [UIColor colorWithRed:30.0/255.0 green:215.0/255.0 blue:96.0/255.0 alpha:1.0]
+            : [UIColor colorWithWhite:1 alpha:.92];
+        button.backgroundColor = [UIColor colorWithWhite:1 alpha:(active ? .055 : .012)];
+        button.transform = active ? CGAffineTransformMakeScale(1.04, 1.04)
                                   : CGAffineTransformIdentity;
     }
 }
