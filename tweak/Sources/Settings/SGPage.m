@@ -37,7 +37,7 @@ void SGRegisterPages(void) {
     // Swift's own name for the protocol, which is what the runtime registers it under.
     Protocol *page = objc_getProtocol("_TtP19Tome_PageAttributes17SPTPageController_") ?: objc_getProtocol("SPTPageController");
     sg_pagesConform = page && class_addProtocol(SGPage.class, page);
-    if (!sg_pagesConform) SGLog(@"SPTPageController not found, the mod's pages are presented instead of pushed");
+    if (!sg_pagesConform) SGLog(@"%@", @"SPTPageController not found, the mod's pages are presented instead of pushed");
 }
 
 void SGShowPage(UIViewController *owner, UIViewController *page) {
