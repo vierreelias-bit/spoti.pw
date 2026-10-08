@@ -214,6 +214,6 @@ UIImage *ELBestArtworkImage(UIView *rootView) {
 
 void ELHideStockNowPlayingView(UIView *rootView) {
     if (!rootView) return;
-    rootView.alpha = 0.001;
+    rootView.alpha = 0.0;
     rootView.userInteractionEnabled = YES;
 }
