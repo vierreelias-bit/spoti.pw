@@ -8,6 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy, nullable) void (^playPauseHandler)(void);
 @property(nonatomic, copy, nullable) void (^nextHandler)(void);
 @property(nonatomic, copy, nullable) void (^openHandler)(void);
+@property(nonatomic, copy, nullable) void (^deviceHandler)(void);
 - (void)setTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage * _Nullable)artwork;
 - (void)setPaused:(BOOL)paused;
 - (void)setLiked:(BOOL)liked;
