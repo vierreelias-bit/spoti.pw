@@ -139,7 +139,7 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 }
 
 - (void)setGlassOpacity:(CGFloat)opacity {
-    self.alpha = MIN(1.0, MAX(0.20, opacity));
+    self.glass.alpha = MIN(1.0, MAX(0.20, opacity));
 }
 
 - (void)openTapped:(UITapGestureRecognizer *)tap {
