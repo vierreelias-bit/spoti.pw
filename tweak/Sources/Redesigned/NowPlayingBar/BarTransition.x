@@ -48,8 +48,14 @@ static UIVisualEffectView *copyPane(UIView *pane) {
     glass.overrideUserInterfaceStyle = pane.traitCollection.userInterfaceStyle;
     if (platter) {
         SGShapeGlass(glass, pane.bounds.size.height / 2, YES);
-    } else if ([pane respondsToSelector:@selector(cornerConfiguration)] && [glass respondsToSelector:@selector(setCornerConfiguration:)]) {
-        [glass setCornerConfiguration:[(id)pane cornerConfiguration]];
+    } else {
+        SEL getCorner = NSSelectorFromString(@"cornerConfiguration");
+        SEL setCorner = NSSelectorFromString(@"setCornerConfiguration:");
+        if ([pane respondsToSelector:getCorner] && [glass respondsToSelector:setCorner]) {
+            id (*getShape)(id, SEL) = (void *)[pane methodForSelector:getCorner];
+            void (*setShape)(id, SEL, id) = (void *)[glass methodForSelector:setCorner];
+            setShape(glass, setCorner, getShape(pane, getCorner));
+        }
     }
     glass.layer.cornerRadius = pane.layer.cornerRadius;
     glass.layer.cornerCurve = pane.layer.cornerCurve;
