@@ -58,6 +58,9 @@ static void applyRow(UIView *cell) {
     }
 
     UIView *subtitle = SGRFindByIdentifier(row, @"EncoreConsumerMobile.View.Granular.Subtitle", &kSubtitleKey);
+    // The artist subtitle is still part of Spotify's row, but can be hidden
+    // without touching playback, attribution metadata, or other list pages.
+    if (subtitle) subtitle.hidden = SGFlag(SGRKeyHideAlbumTrackArtists, NO);
     SGForEachView(subtitle, ^(UIView *v) {
         if (![v isKindOfClass:UILabel.class]) return;
         UILabel *label = (UILabel *)v;
