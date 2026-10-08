@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <objc/message.h>
+#import <objc/runtime.h>
 #import "ELRuntime.h"
 #import "ELGlassTabBar.h"
 #import "ELMiniPlayer.h"
@@ -23,14 +24,21 @@ static id ELCurrentState = nil;
 static UIImage *ELCurrentArtwork = nil;
 static NSTimer *ELProgressTimer = nil;
 static BOOL ELFullPlayerVisible = NO;
+static BOOL ELOpeningPlayer = NO;
 static ELAppearanceController *ELAppearance = nil;
 
 static NSString *const ELMiniOpacityKey = @"elispot.mini.opacity";
 static NSString *const ELTabsOpacityKey = @"elispot.tabs.opacity";
+static char ELLyricsGlassKey;
 
 static id ELMsgId(id obj, SEL sel) {
     if (!obj || ![obj respondsToSelector:sel]) return nil;
     return ((id (*)(id, SEL))objc_msgSend)(obj, sel);
+}
+
+static BOOL ELMsgBool(id obj, SEL sel) {
+    if (!obj || ![obj respondsToSelector:sel]) return YES;
+    return ((BOOL (*)(id, SEL))objc_msgSend)(obj, sel);
 }
 
 static double ELMsgDouble(id obj, SEL sel) {
@@ -52,12 +60,12 @@ static UIView *ELChromeHost(void) {
 static CGFloat ELOpacityForKey(NSString *key, CGFloat fallback) {
     NSNumber *value = [NSUserDefaults.standardUserDefaults objectForKey:key];
     if (![value isKindOfClass:NSNumber.class]) return fallback;
-    return MIN(1.0, MAX(0.20, value.doubleValue));
+    return MIN(1.0, MAX(0.18, value.doubleValue));
 }
 
 static void ELApplyAppearance(void) {
-    [ELMini setGlassOpacity:ELOpacityForKey(ELMiniOpacityKey, .92)];
-    [ELBar setGlassOpacity:ELOpacityForKey(ELTabsOpacityKey, .90)];
+    [ELMini setGlassOpacity:ELOpacityForKey(ELMiniOpacityKey, .72)];
+    [ELBar setGlassOpacity:ELOpacityForKey(ELTabsOpacityKey, .70)];
 }
 
 static void ELSetChromeHidden(BOOL hidden) {
@@ -76,10 +84,7 @@ static UIImage *ELSystemArtwork(void) {
     NSDictionary *info = MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo;
     id raw = info[MPMediaItemPropertyArtwork];
     if (![raw isKindOfClass:MPMediaItemArtwork.class]) return nil;
-
-    MPMediaItemArtwork *artwork = (MPMediaItemArtwork *)raw;
-    UIImage *image = [artwork imageWithSize:CGSizeMake(300, 300)];
-    return image;
+    return [(MPMediaItemArtwork *)raw imageWithSize:CGSizeMake(300, 300)];
 }
 
 static void ELRefreshMiniPlayer(void) {
@@ -92,19 +97,93 @@ static void ELRefreshMiniPlayer(void) {
     id track = ELMsgId(state, @selector(track));
     NSString *title = ELStringValue(track, @selector(trackTitle));
     NSString *artist = ELStringValue(track, @selector(artistName));
+    BOOL paused = ELMsgBool(state, @selector(isPaused));
     double position = ELMsgDouble(state, @selector(position));
     double duration = ELMsgDouble(state, @selector(duration));
 
     [ELMini setTitle:title ?: @"Ei kappaletta"
             subtitle:artist ?: @"Nyt soi"
              artwork:ELCurrentArtwork];
+    [ELMini setPaused:paused];
     [ELMini setPosition:position duration:duration];
+}
+
+static void ELTogglePlayback(void) {
+    id player = ELSpotifyPlayer;
+    id state = ELCurrentState;
+    if (!player || !state) return;
+
+    BOOL paused = ELMsgBool(state, @selector(isPaused));
+    SEL sel = paused ? @selector(resume:) : @selector(pause:);
+    if (![player respondsToSelector:sel]) return;
+
+    ((id (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
+}
+
+static UIVisualEffect *ELTransitionGlass(void) {
+    Class glass = NSClassFromString(@"UIGlassEffect");
+    if (glass) return [[glass alloc] init];
+    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
 }
 
 static void ELOpenFullPlayer(void) {
     UIView *stock = ELStockNowPlayingView;
-    if (!stock) return;
-    ELActivateView(stock);
+    UIView *host = ELChromeHost();
+    if (!stock || !host || !ELMini || ELOpeningPlayer) return;
+
+    ELOpeningPlayer = YES;
+
+    CGRect start = [ELMini.superview convertRect:ELMini.frame toView:host];
+    UIVisualEffectView *portal = [[UIVisualEffectView alloc] initWithEffect:ELTransitionGlass()];
+    portal.frame = start;
+    portal.layer.cornerRadius = CGRectGetHeight(start) / 2.0;
+    portal.layer.cornerCurve = kCACornerCurveContinuous;
+    portal.layer.borderWidth = .65;
+    portal.layer.borderColor = [UIColor colorWithWhite:1 alpha:.16].CGColor;
+    portal.clipsToBounds = YES;
+    portal.userInteractionEnabled = NO;
+
+    UIImageView *art = [[UIImageView alloc] initWithImage:ELCurrentArtwork];
+    art.contentMode = UIViewContentModeScaleAspectFill;
+    art.frame = CGRectMake(6, 6, MAX(1, CGRectGetHeight(start) - 12), MAX(1, CGRectGetHeight(start) - 12));
+    art.layer.cornerRadius = 14;
+    art.clipsToBounds = YES;
+    [portal.contentView addSubview:art];
+
+    [host addSubview:portal];
+    [host bringSubviewToFront:portal];
+
+    ELMini.alpha = 0.0;
+    ELBar.alpha = 0.45;
+
+    CGFloat safeTop = MAX(host.safeAreaInsets.top, 12.0);
+    CGRect target = CGRectMake(12,
+                               safeTop + 8,
+                               host.bounds.size.width - 24,
+                               MIN(116.0, host.bounds.size.height * .14));
+
+    [UIView animateWithDuration:.34
+                          delay:0
+         usingSpringWithDamping:.82
+          initialSpringVelocity:.18
+                        options:UIViewAnimationOptionBeginFromCurrentState
+                     animations:^{
+        portal.frame = target;
+        portal.layer.cornerRadius = 36;
+        art.frame = CGRectMake(10, 10, CGRectGetHeight(target) - 20, CGRectGetHeight(target) - 20);
+        art.layer.cornerRadius = 22;
+        ELBar.alpha = 0.0;
+    } completion:^(__unused BOOL finished) {
+        ELActivateView(stock);
+
+        [UIView animateWithDuration:.18 animations:^{
+            portal.alpha = 0.0;
+            portal.transform = CGAffineTransformMakeScale(1.015, 1.015);
+        } completion:^(__unused BOOL done) {
+            [portal removeFromSuperview];
+            ELOpeningPlayer = NO;
+        }];
+    }];
 }
 
 static void ELStartProgressTimer(void) {
@@ -146,13 +225,26 @@ static void ELPositionMiniAboveTabs(void) {
     CGRect barFrame = [ELBar.superview convertRect:ELBar.frame toView:host];
     CGFloat h = 62.0;
     CGFloat gap = 10.0;
-    CGFloat y = CGRectGetMinY(barFrame) - h - gap;
-
     ELMini.frame = CGRectMake(CGRectGetMinX(barFrame),
-                              y,
+                              CGRectGetMinY(barFrame) - h - gap,
                               CGRectGetWidth(barFrame),
                               h);
     [host bringSubviewToFront:ELMini];
+}
+
+static void ELStyleLyricsTree(UIView *root) {
+    for (UIView *view in root.subviews) {
+        if ([view isKindOfClass:UILabel.class]) {
+            UILabel *label = (UILabel *)view;
+            CGFloat point = label.font.pointSize;
+            CGFloat target = point >= 20 ? 30.0 : MAX(20.0, point + 5.0);
+            label.font = [UIFont systemFontOfSize:target weight:
+                          (point >= 20 ? UIFontWeightSemibold : UIFontWeightMedium)];
+            label.textColor = UIColor.whiteColor;
+            label.numberOfLines = 0;
+        }
+        ELStyleLyricsTree(view);
+    }
 }
 
 @implementation ELAppearanceController
@@ -181,11 +273,10 @@ static void ELPositionMiniAboveTabs(void) {
                                                              host.safeAreaInsets.top + 70.0,
                                                              width,
                                                              height)];
-    panel.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
     panel.layer.cornerRadius = 28;
     panel.layer.cornerCurve = kCACornerCurveContinuous;
     panel.layer.shadowColor = UIColor.blackColor.CGColor;
-    panel.layer.shadowOpacity = .35;
+    panel.layer.shadowOpacity = .30;
     panel.layer.shadowRadius = 24;
 
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:[self panelEffect]];
@@ -194,7 +285,7 @@ static void ELPositionMiniAboveTabs(void) {
     glass.layer.cornerRadius = 28;
     glass.layer.cornerCurve = kCACornerCurveContinuous;
     glass.layer.borderWidth = .7;
-    glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.18].CGColor;
+    glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.16].CGColor;
     glass.clipsToBounds = YES;
     [panel addSubview:glass];
 
@@ -218,9 +309,9 @@ static void ELPositionMiniAboveTabs(void) {
     [panel addSubview:miniLabel];
 
     UISlider *mini = [[UISlider alloc] initWithFrame:CGRectMake(20, 79, width - 40, 28)];
-    mini.minimumValue = .20;
+    mini.minimumValue = .18;
     mini.maximumValue = 1.0;
-    mini.value = ELOpacityForKey(ELMiniOpacityKey, .92);
+    mini.value = ELOpacityForKey(ELMiniOpacityKey, .72);
     [mini addTarget:self action:@selector(miniOpacityChanged:) forControlEvents:UIControlEventValueChanged];
     [panel addSubview:mini];
     self.miniSlider = mini;
@@ -232,9 +323,9 @@ static void ELPositionMiniAboveTabs(void) {
     [panel addSubview:tabsLabel];
 
     UISlider *tabs = [[UISlider alloc] initWithFrame:CGRectMake(20, 133, width - 40, 28)];
-    tabs.minimumValue = .20;
+    tabs.minimumValue = .18;
     tabs.maximumValue = 1.0;
-    tabs.value = ELOpacityForKey(ELTabsOpacityKey, .90);
+    tabs.value = ELOpacityForKey(ELTabsOpacityKey, .70);
     [tabs addTarget:self action:@selector(tabsOpacityChanged:) forControlEvents:UIControlEventValueChanged];
     [panel addSubview:tabs];
     self.tabsSlider = tabs;
@@ -327,6 +418,9 @@ static void ELInstallUI(void) {
         )];
         ELMini.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
+        ELMini.playPauseHandler = ^{
+            ELTogglePlayback();
+        };
         ELMini.openHandler = ^{
             ELOpenFullPlayer();
         };
@@ -350,7 +444,7 @@ static void ELInstallUI(void) {
 
     ELApplyAppearance();
 
-    if (!ELFullPlayerVisible) {
+    if (!ELFullPlayerVisible && !ELOpeningPlayer) {
         if (ELMini.superview) [ELMini.superview bringSubviewToFront:ELMini];
         [host bringSubviewToFront:ELBar];
     }
@@ -424,6 +518,30 @@ static void ELInstallUI(void) {
 }
 %end
 
+%hook _TtC22Lyrics_NPVContainerKit19LyricsContainerView
+- (void)layoutSubviews {
+    %orig;
+
+    UIView *host = (UIView *)self;
+    UIVisualEffectView *glass = objc_getAssociatedObject(host, &ELLyricsGlassKey);
+    if (!glass) {
+        glass = [[UIVisualEffectView alloc] initWithEffect:ELTransitionGlass()];
+        glass.userInteractionEnabled = NO;
+        glass.layer.cornerRadius = 28;
+        glass.layer.cornerCurve = kCACornerCurveContinuous;
+        glass.layer.borderWidth = .55;
+        glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.12].CGColor;
+        glass.clipsToBounds = YES;
+        objc_setAssociatedObject(host, &ELLyricsGlassKey, glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [host insertSubview:glass atIndex:0];
+    }
+
+    glass.frame = CGRectInset(host.bounds, 4, 4);
+    host.backgroundColor = UIColor.clearColor;
+    ELStyleLyricsTree(host);
+}
+%end
+
 %hook UIImageView
 - (void)setImage:(UIImage *)image {
     %orig;
@@ -455,7 +573,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.3");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.4");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
