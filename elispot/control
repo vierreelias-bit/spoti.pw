@@ -1,6 +1,6 @@
 Package: i.elias.elispot
 Name: EliSpot
-Version: 0.3.11
+Version: 0.3.12
 Architecture: iphoneos-arm
 Description: Clean-room Spotify 9.1.78 Liquid Glass UI rebuild.
 Maintainer: elias
