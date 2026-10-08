@@ -1,4 +1,15 @@
 #import "SGLog.h"
+#import <stdarg.h>
+
+// Keep the os_log format literal fixed, and format user-facing details separately.
+void SGLogMessage(NSString *format, ...) {
+    va_list args;
+    va_start(args, format);
+    NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+    va_end(args);
+    os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT,
+                     "[EliSpot] %{public}s", message.UTF8String);
+}
 
 // The unified log cuts a message at about 1 KB, so long dumps go out as numbered parts.
 void SGLogLong(NSString *tag, NSString *text) {
