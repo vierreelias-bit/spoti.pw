@@ -9,12 +9,14 @@
 @interface ELPlayerObserver : NSObject
 @end
 
-@interface ELTouchBlockerView : UIView
+@interface ELOverlayHostView : UIView
 @end
 
-@implementation ELTouchBlockerView
+@implementation ELOverlayHostView
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    if (self.hidden || self.alpha <= 0.01 || !self.userInteractionEnabled) return nil;
+    if (self.hidden || self.alpha <= .01 || !self.userInteractionEnabled) return nil;
+    UIView *hit = [super hitTest:point withEvent:event];
+    if (hit && hit != self) return hit;
     return CGRectContainsPoint(self.bounds, point) ? self : nil;
 }
 @end
@@ -28,8 +30,7 @@
 
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
-static ELTouchBlockerView *ELTabTouchBlocker = nil;
-static ELTouchBlockerView *ELMiniTouchBlocker = nil;
+static ELOverlayHostView *ELOverlayHost = nil;
 static __weak UIView *ELStockNowPlayingView = nil;
 static __weak id ELSpotifyPlayer = nil;
 static id ELCurrentState = nil;
@@ -72,7 +73,7 @@ static UIView *ELChromeHost(void) {
 static CGFloat ELOpacityForKey(NSString *key, CGFloat fallback) {
     NSNumber *value = [NSUserDefaults.standardUserDefaults objectForKey:key];
     if (![value isKindOfClass:NSNumber.class]) return fallback;
-    return MIN(1.0, MAX(0.18, value.doubleValue));
+    return MIN(1.0, MAX(.18, value.doubleValue));
 }
 
 static void ELApplyAppearance(void) {
@@ -82,18 +83,10 @@ static void ELApplyAppearance(void) {
 
 static void ELSetChromeHidden(BOOL hidden) {
     ELFullPlayerVisible = hidden;
-
     [UIView animateWithDuration:.22 animations:^{
-        ELBar.alpha = hidden ? 0.0 : 1.0;
-        ELMini.alpha = hidden ? 0.0 : 1.0;
-        ELTabTouchBlocker.alpha = hidden ? 0.0 : 1.0;
-        ELMiniTouchBlocker.alpha = hidden ? 0.0 : 1.0;
+        ELOverlayHost.alpha = hidden ? 0.0 : 1.0;
     }];
-
-    ELBar.userInteractionEnabled = !hidden;
-    ELMini.userInteractionEnabled = !hidden;
-    ELTabTouchBlocker.userInteractionEnabled = !hidden;
-    ELMiniTouchBlocker.userInteractionEnabled = !hidden;
+    ELOverlayHost.userInteractionEnabled = !hidden;
 }
 
 static UIImage *ELSystemArtwork(void) {
@@ -136,6 +129,20 @@ static void ELTogglePlayback(void) {
     ((id (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
 }
 
+static BOOL ELTryPlayerAction(NSArray<NSString *> *names) {
+    id player = ELSpotifyPlayer;
+    if (!player) return NO;
+
+    for (NSString *name in names) {
+        SEL sel = NSSelectorFromString(name);
+        if ([player respondsToSelector:sel]) {
+            ((void (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
+            return YES;
+        }
+    }
+    return NO;
+}
+
 static UIVisualEffect *ELTransitionGlass(void) {
     Class glass = NSClassFromString(@"UIGlassEffect");
     if (glass) return [[glass alloc] init];
@@ -148,8 +155,8 @@ static void ELOpenFullPlayer(void) {
     if (!stock || !host || !ELMini || ELOpeningPlayer) return;
 
     ELOpeningPlayer = YES;
-
     CGRect start = [ELMini.superview convertRect:ELMini.frame toView:host];
+
     UIVisualEffectView *portal = [[UIVisualEffectView alloc] initWithEffect:ELTransitionGlass()];
     portal.frame = start;
     portal.layer.cornerRadius = CGRectGetHeight(start) / 2.0;
@@ -168,15 +175,10 @@ static void ELOpenFullPlayer(void) {
 
     [host addSubview:portal];
     [host bringSubviewToFront:portal];
-
-    ELMini.alpha = 0.0;
-    ELBar.alpha = 0.45;
+    ELOverlayHost.alpha = .35;
 
     CGFloat safeTop = MAX(host.safeAreaInsets.top, 12.0);
-    CGRect target = CGRectMake(12,
-                               safeTop + 8,
-                               host.bounds.size.width - 24,
-                               MIN(116.0, host.bounds.size.height * .14));
+    CGRect target = CGRectMake(12, safeTop + 8, host.bounds.size.width - 24, MIN(116.0, host.bounds.size.height * .14));
 
     [UIView animateWithDuration:.34
                           delay:0
@@ -187,14 +189,11 @@ static void ELOpenFullPlayer(void) {
         portal.frame = target;
         portal.layer.cornerRadius = 36;
         art.frame = CGRectMake(10, 10, CGRectGetHeight(target) - 20, CGRectGetHeight(target) - 20);
-        art.layer.cornerRadius = 22;
-        ELBar.alpha = 0.0;
+        ELOverlayHost.alpha = 0.0;
     } completion:^(__unused BOOL finished) {
         ELActivateView(stock);
-
         [UIView animateWithDuration:.18 animations:^{
             portal.alpha = 0.0;
-            portal.transform = CGAffineTransformMakeScale(1.015, 1.015);
         } completion:^(__unused BOOL done) {
             [portal removeFromSuperview];
             ELOpeningPlayer = NO;
@@ -204,7 +203,6 @@ static void ELOpenFullPlayer(void) {
 
 static void ELStartProgressTimer(void) {
     if (ELProgressTimer) return;
-
     ELProgressTimer = [NSTimer scheduledTimerWithTimeInterval:.5
                                                      repeats:YES
                                                        block:^(__unused NSTimer *timer) {
@@ -222,47 +220,40 @@ static void ELCaptureArtworkFromView(UIView *view) {
 static BOOL ELViewLivesInsideStockNowPlaying(UIView *view) {
     UIView *stock = ELStockNowPlayingView;
     if (!stock || !view) return NO;
-
     for (UIView *cursor = view; cursor; cursor = cursor.superview) {
         if (cursor == stock) return YES;
     }
     return NO;
 }
 
-static void ELPositionMiniAboveTabs(void) {
-    if (!ELMini || !ELBar || !ELStockNowPlayingView.superview) return;
+static void ELLayoutOverlayHost(void) {
+    UIView *host = ELChromeHost();
+    if (!host || !ELOverlayHost || !ELBar || !ELMini) return;
 
-    UIView *host = ELStockNowPlayingView.superview;
-
-    if (!ELMiniTouchBlocker) {
-        ELMiniTouchBlocker = [ELTouchBlockerView new];
-        ELMiniTouchBlocker.backgroundColor = UIColor.clearColor;
-        ELMiniTouchBlocker.userInteractionEnabled = YES;
-    }
-
-    if (ELMiniTouchBlocker.superview != host) {
-        [ELMiniTouchBlocker removeFromSuperview];
-        [host addSubview:ELMiniTouchBlocker];
-    }
-
-    if (ELMini.superview != host) {
-        [ELMini removeFromSuperview];
-        [host addSubview:ELMini];
-    }
-
-    CGRect barFrame = [ELBar.superview convertRect:ELBar.frame toView:host];
-    CGFloat h = 62.0;
+    CGFloat side = 16.0;
+    CGFloat tabHeight = 64.0;
+    CGFloat miniHeight = 62.0;
     CGFloat gap = 10.0;
-    CGRect miniFrame = CGRectMake(CGRectGetMinX(barFrame),
-                                  CGRectGetMinY(barFrame) - h - gap,
-                                  CGRectGetWidth(barFrame),
-                                  h);
+    CGFloat bottom = MAX(host.safeAreaInsets.bottom, 8.0) + 7.0;
 
-    ELMiniTouchBlocker.frame = miniFrame;
-    ELMini.frame = miniFrame;
+    CGRect tabFrame = CGRectMake(side,
+                                 host.bounds.size.height - bottom - tabHeight,
+                                 host.bounds.size.width - side * 2.0,
+                                 tabHeight);
 
-    [host insertSubview:ELMiniTouchBlocker belowSubview:ELMini];
-    [host bringSubviewToFront:ELMini];
+    CGRect miniFrame = CGRectMake(side,
+                                  CGRectGetMinY(tabFrame) - miniHeight - gap,
+                                  host.bounds.size.width - side * 2.0,
+                                  miniHeight);
+
+    CGRect unionFrame = CGRectUnion(miniFrame, tabFrame);
+
+    ELOverlayHost.frame = unionFrame;
+    ELMini.frame = CGRectMake(0, 0, unionFrame.size.width, miniHeight);
+    ELBar.frame = CGRectMake(0,
+                             CGRectGetMinY(tabFrame) - CGRectGetMinY(unionFrame),
+                             unionFrame.size.width,
+                             tabHeight);
 }
 
 static void ELStyleLyricsTree(UIView *root) {
@@ -271,8 +262,8 @@ static void ELStyleLyricsTree(UIView *root) {
             UILabel *label = (UILabel *)view;
             CGFloat point = label.font.pointSize;
             CGFloat target = point >= 20 ? 30.0 : MAX(20.0, point + 5.0);
-            label.font = [UIFont systemFontOfSize:target weight:
-                          (point >= 20 ? UIFontWeightSemibold : UIFontWeightMedium)];
+            label.font = [UIFont systemFontOfSize:target
+                                          weight:(point >= 20 ? UIFontWeightSemibold : UIFontWeightMedium)];
             label.textColor = UIColor.whiteColor;
             label.numberOfLines = 0;
         }
@@ -281,7 +272,6 @@ static void ELStyleLyricsTree(UIView *root) {
 }
 
 @implementation ELAppearanceController
-
 - (UIVisualEffect *)panelEffect {
     Class glass = NSClassFromString(@"UIGlassEffect");
     if (glass) return [[glass alloc] init];
@@ -301,24 +291,17 @@ static void ELStyleLyricsTree(UIView *root) {
     if (!host) return;
 
     CGFloat width = MIN(330.0, host.bounds.size.width - 32.0);
-    CGFloat height = 190.0;
     UIView *panel = [[UIView alloc] initWithFrame:CGRectMake((host.bounds.size.width - width) / 2.0,
                                                              host.safeAreaInsets.top + 70.0,
                                                              width,
-                                                             height)];
+                                                             190.0)];
     panel.layer.cornerRadius = 28;
     panel.layer.cornerCurve = kCACornerCurveContinuous;
-    panel.layer.shadowColor = UIColor.blackColor.CGColor;
-    panel.layer.shadowOpacity = .30;
-    panel.layer.shadowRadius = 24;
 
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:[self panelEffect]];
     glass.frame = panel.bounds;
     glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     glass.layer.cornerRadius = 28;
-    glass.layer.cornerCurve = kCACornerCurveContinuous;
-    glass.layer.borderWidth = .7;
-    glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.16].CGColor;
     glass.clipsToBounds = YES;
     [panel addSubview:glass];
 
@@ -338,7 +321,6 @@ static void ELStyleLyricsTree(UIView *root) {
     UILabel *miniLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 58, width - 40, 20)];
     miniLabel.text = @"Nyt soi -läpinäkyvyys";
     miniLabel.textColor = UIColor.whiteColor;
-    miniLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
     [panel addSubview:miniLabel];
 
     UISlider *mini = [[UISlider alloc] initWithFrame:CGRectMake(20, 79, width - 40, 28)];
@@ -352,7 +334,6 @@ static void ELStyleLyricsTree(UIView *root) {
     UILabel *tabsLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 112, width - 40, 20)];
     tabsLabel.text = @"Tabien läpinäkyvyys";
     tabsLabel.textColor = UIColor.whiteColor;
-    tabsLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
     [panel addSubview:tabsLabel];
 
     UISlider *tabs = [[UISlider alloc] initWithFrame:CGRectMake(20, 133, width - 40, 28)];
@@ -381,7 +362,6 @@ static void ELStyleLyricsTree(UIView *root) {
     [NSUserDefaults.standardUserDefaults setDouble:slider.value forKey:ELTabsOpacityKey];
     ELApplyAppearance();
 }
-
 @end
 
 @implementation ELPlayerObserver
@@ -408,113 +388,69 @@ static void ELInstallUI(void) {
 
     ELFadeSpotifyTabBar(spotifyBar);
 
-    CGFloat side = 16.0;
-    CGFloat tabHeight = 64.0;
-    CGFloat bottom = MAX(host.safeAreaInsets.bottom, 8.0) + 7.0;
+    if (!ELOverlayHost) {
+        ELOverlayHost = [ELOverlayHostView new];
+        ELOverlayHost.backgroundColor = UIColor.clearColor;
+        ELOverlayHost.userInteractionEnabled = YES;
+        [host addSubview:ELOverlayHost];
+    } else if (ELOverlayHost.superview != host) {
+        [ELOverlayHost removeFromSuperview];
+        [host addSubview:ELOverlayHost];
+    }
 
     if (!ELBar) {
-        ELTabTouchBlocker = [ELTouchBlockerView new];
-        ELTabTouchBlocker.backgroundColor = UIColor.clearColor;
-        ELTabTouchBlocker.userInteractionEnabled = YES;
-
-        ELBar = [[ELGlassTabBar alloc] initWithFrame:CGRectMake(
-            side,
-            host.bounds.size.height - bottom - tabHeight,
-            host.bounds.size.width - side * 2.0,
-            tabHeight
-        )];
-        ELBar.autoresizingMask =
-            UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-
-        [host addSubview:ELTabTouchBlocker];
-        [host addSubview:ELBar];
+        ELBar = [[ELGlassTabBar alloc] initWithFrame:CGRectZero];
+        [ELOverlayHost addSubview:ELBar];
 
         if (!ELAppearance) ELAppearance = [ELAppearanceController new];
         UILongPressGestureRecognizer *hold =
             [[UILongPressGestureRecognizer alloc] initWithTarget:ELAppearance action:@selector(showSettings:)];
         hold.minimumPressDuration = .65;
         [ELBar addGestureRecognizer:hold];
-    } else if (ELBar.superview != host) {
-        [ELTabTouchBlocker removeFromSuperview];
-        [ELBar removeFromSuperview];
-        [host addSubview:ELTabTouchBlocker];
-        [host addSubview:ELBar];
     }
 
-    CGRect tabFrame = CGRectMake(
-        side,
-        host.bounds.size.height - bottom - tabHeight,
-        host.bounds.size.width - side * 2.0,
-        tabHeight
-    );
-
-    ELTabTouchBlocker.frame = tabFrame;
-    ELBar.frame = tabFrame;
-    [host insertSubview:ELTabTouchBlocker belowSubview:ELBar];
-    ELBar.spotifyTabBar = spotifyBar;
-    [ELBar syncFromSpotify];
-
     if (!ELMini) {
-        ELMini = [[ELMiniPlayer alloc] initWithFrame:CGRectMake(
-            side,
-            CGRectGetMinY(ELBar.frame) - 72.0,
-            host.bounds.size.width - side * 2.0,
-            62.0
-        )];
-        ELMini.autoresizingMask =
-            UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
+        ELMini = [[ELMiniPlayer alloc] initWithFrame:CGRectZero];
+
+        ELMini.likeHandler = ^{
+            [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight] impactOccurred];
+        };
+
+        ELMini.previousHandler = ^{
+            ELTryPlayerAction(@[@"skipToPrevious:", @"previous:", @"previousTrack:"]);
+        };
+
         ELMini.playPauseHandler = ^{
             ELTogglePlayback();
         };
+
+        ELMini.nextHandler = ^{
+            ELTryPlayerAction(@[@"skipToNext:", @"next:", @"nextTrack:"]);
+        };
+
         ELMini.openHandler = ^{
             ELOpenFullPlayer();
         };
-        if (!ELMiniTouchBlocker) {
-            ELMiniTouchBlocker = [ELTouchBlockerView new];
-            ELMiniTouchBlocker.backgroundColor = UIColor.clearColor;
-            ELMiniTouchBlocker.userInteractionEnabled = YES;
-        }
-        [host addSubview:ELMiniTouchBlocker];
-        [host addSubview:ELMini];
+
+        [ELOverlayHost addSubview:ELMini];
         ELRefreshMiniPlayer();
         ELStartProgressTimer();
     }
 
-    if (ELStockNowPlayingView.superview) {
-        ELPositionMiniAboveTabs();
-    } else {
-        if (ELMiniTouchBlocker.superview != host) {
-            [ELMiniTouchBlocker removeFromSuperview];
-            [host addSubview:ELMiniTouchBlocker];
-        }
-        if (ELMini.superview != host) {
-            [ELMini removeFromSuperview];
-            [host addSubview:ELMini];
-        }
+    ELBar.spotifyTabBar = spotifyBar;
+    [ELBar syncFromSpotify];
 
-        CGRect miniFrame = CGRectMake(side,
-                                      CGRectGetMinY(ELBar.frame) - 72.0,
-                                      host.bounds.size.width - side * 2.0,
-                                      62.0);
-        ELMiniTouchBlocker.frame = miniFrame;
-        ELMini.frame = miniFrame;
-        [host insertSubview:ELMiniTouchBlocker belowSubview:ELMini];
-    }
-
+    ELLayoutOverlayHost();
     ELApplyAppearance();
 
-    if (!ELFullPlayerVisible && !ELOpeningPlayer) {
-        if (ELMini.superview) [ELMini.superview bringSubviewToFront:ELMini];
-        if (ELTabTouchBlocker.superview == host) [host insertSubview:ELTabTouchBlocker belowSubview:ELBar];
-        [host bringSubviewToFront:ELBar];
-    }
+    [host bringSubviewToFront:ELOverlayHost];
 }
 
 %hook SPTEsperantoPlayer
 - (void)addPlayerObserver:(id)observer {
     %orig;
-
     ELSpotifyPlayer = self;
+
     if (!ELObserver) {
         ELObserver = [ELPlayerObserver new];
         %orig(ELObserver);
@@ -551,7 +487,7 @@ static void ELInstallUI(void) {
     ELCaptureArtworkFromView(stock);
     ELHideStockNowPlayingView(stock);
     ELInstallUI();
-    ELPositionMiniAboveTabs();
+    ELLayoutOverlayHost();
     ELRefreshMiniPlayer();
 }
 %end
@@ -560,9 +496,7 @@ static void ELInstallUI(void) {
 - (void)layoutSubviews {
     %orig;
     UIView *view = (UIView *)self;
-    if (view.bounds.size.width >= 40) {
-        ELCaptureArtworkFromView(view);
-    }
+    if (view.bounds.size.width >= 40) ELCaptureArtworkFromView(view);
 }
 %end
 
@@ -584,13 +518,12 @@ static void ELInstallUI(void) {
 
     UIView *host = (UIView *)self;
     UIVisualEffectView *glass = objc_getAssociatedObject(host, &ELLyricsGlassKey);
+
     if (!glass) {
         glass = [[UIVisualEffectView alloc] initWithEffect:ELTransitionGlass()];
         glass.userInteractionEnabled = NO;
         glass.layer.cornerRadius = 28;
         glass.layer.cornerCurve = kCACornerCurveContinuous;
-        glass.layer.borderWidth = .55;
-        glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.12].CGColor;
         glass.clipsToBounds = YES;
         objc_setAssociatedObject(host, &ELLyricsGlassKey, glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         [host insertSubview:glass atIndex:0];
@@ -614,7 +547,7 @@ static void ELInstallUI(void) {
     if (size.width < 40 || size.height < 40) return;
 
     CGFloat ratio = size.height > 0 ? size.width / size.height : 0;
-    if (ratio < 0.80 || ratio > 1.25) return;
+    if (ratio < .80 || ratio > 1.25) return;
 
     ELCurrentArtwork = image;
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -633,7 +566,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.5");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.6");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
