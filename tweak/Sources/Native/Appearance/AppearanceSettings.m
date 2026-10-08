@@ -10,19 +10,19 @@
 static void chooseAccent(void) {
     UIViewController *top = SGTopController();
     if (!top) return;
-    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"Accent colour"
-        message:@"Choose a preset or your own colour. Restart Spotify to apply."
+    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:SGT(@"Accent colour")
+        message:SGT(@"Choose a preset or your own colour. Restart Spotify to apply.")
         preferredStyle:UIAlertControllerStyleActionSheet];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Pick a colour"
+    [sheet addAction:[UIAlertAction actionWithTitle:SGT(@"Pick a colour")
         style:UIAlertActionStyleDefault
         handler:^(UIAlertAction *action) { SGPickAccent(); }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Apple Music red"
+    [sheet addAction:[UIAlertAction actionWithTitle:SGT(@"Apple Music red")
         style:UIAlertActionStyleDefault
         handler:^(UIAlertAction *action) { SGSetInt(SGKeyAccent, 0xFA233B); }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Spotify green"
+    [sheet addAction:[UIAlertAction actionWithTitle:SGT(@"Spotify green")
         style:UIAlertActionStyleDefault
         handler:^(UIAlertAction *action) { SGSetInt(SGKeyAccent, -1); }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Cancel"
+    [sheet addAction:[UIAlertAction actionWithTitle:SGT(@"Cancel")
         style:UIAlertActionStyleCancel handler:nil]];
     sheet.popoverPresentationController.sourceView = top.view;
     sheet.popoverPresentationController.sourceRect =
