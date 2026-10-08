@@ -5,10 +5,43 @@
 
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
+static UILabel *ELLoadBanner = nil;
+
+static void ELShowLoadBanner(void) {
+    if (ELLoadBanner) return;
+
+    UIWindow *window = ELKeyWindow();
+    if (!window) return;
+
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(20, 70, window.bounds.size.width - 40, 44)];
+    label.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    label.backgroundColor = [UIColor colorWithRed:0.08 green:0.85 blue:0.35 alpha:0.95];
+    label.textColor = UIColor.blackColor;
+    label.font = [UIFont systemFontOfSize:16 weight:UIFontWeightBold];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.text = @"EliSpot LOADED";
+    label.layer.cornerRadius = 14;
+    label.layer.cornerCurve = kCACornerCurveContinuous;
+    label.clipsToBounds = YES;
+    [window addSubview:label];
+    ELLoadBanner = label;
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        [UIView animateWithDuration:0.25 animations:^{
+            label.alpha = 0;
+        } completion:^(BOOL finished) {
+            [label removeFromSuperview];
+            if (ELLoadBanner == label) ELLoadBanner = nil;
+        }];
+    });
+}
 
 static void ELInstallIfPossible(void) {
     UIWindow *window = ELKeyWindow();
     if (!window || !window.rootViewController) return;
+
+    ELShowLoadBanner();
 
     UIView *spotifyBar = ELFindSpotifyTabBar(window.rootViewController.view);
     if (!spotifyBar) {
@@ -73,7 +106,9 @@ static void ELInstallIfPossible(void) {
 
 %ctor {
     NSLog(@"[EliSpot] dylib loaded");
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        ELShowLoadBanner();
         ELInstallIfPossible();
     });
 }
