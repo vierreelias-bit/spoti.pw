@@ -1,8 +1,12 @@
 #import <Foundation/Foundation.h>
 #import <os/log.h>
 
-// %{public}s so idevicesyslog on the Mac sees the text instead of <private>.
-#define SGLog(fmt, ...) os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "[spotifyglass] %{public}s", [NSString stringWithFormat:(fmt), ##__VA_ARGS__].UTF8String)
+// Render the NSString formatting outside the os_log macro. Passing a no-argument
+// NSString literal directly to stringWithFormat from a macro triggers -Wformat-security
+// with the older iOS SDK used by Ubuntu/WSL. A normal variadic function accepts both
+// SGLog(@"message") and SGLog(@"value %@", value) without that false positive.
+FOUNDATION_EXPORT void SGLogMessage(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
+#define SGLog(...) SGLogMessage(__VA_ARGS__)
 
 // Long dumps, split into numbered parts under the unified log's size cap.
 void SGLogLong(NSString *tag, NSString *text);
