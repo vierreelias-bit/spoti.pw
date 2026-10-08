@@ -18,6 +18,12 @@ requirements or used with separately obtained permission. No copyrighted
 - [x] Expose an Albums page in the redesigned settings.
 - [x] Add a switch to hide the artist subtitle under redesigned album tracks.
 - [x] Add an optional, manually opened **What's new** page; no automatic prompts.
+- [x] Add v30-only language settings: System default, English, Finnish,
+      Swedish, German, Spanish and French; translated common EliSpot settings
+      labels, notes and value rows with English fallback.
+- [ ] Complete the translation coverage of feature-specific controls and
+      dialogs in all languages (partial currently); validate on iOS.
+
 - [x] Retain prior Ubuntu SDK compatibility patches and Debian packaging.
 
 ## 0.50-era capabilities to audit or implement independently
