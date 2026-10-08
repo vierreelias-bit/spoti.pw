@@ -24,7 +24,7 @@ FLEX_DEB="$ROOT/vendor/com.hopeless.autoflex_0.0.1_iphoneos-arm.deb"
 BUNDLE_ID="${BUNDLE_ID:-}"
 mkdir -p "$ROOT/out"
 
-IN="" OUT="" WITH_FLEX=1 INSTALL=0 NAME="" ICON=""
+IN="" OUT="" WITH_FLEX=1 INSTALL=0 NAME="EliSpot" ICON=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -o) OUT="$2"; shift 2 ;;
@@ -63,8 +63,8 @@ rm -f "$ROOT/out/.info.plist"
 # a fork left behind by a release is named for the version it really is.
 MOD_VERSION="$(cat "$ROOT/version.txt" 2>/dev/null || true)"
 : "${MOD_VERSION:=0.0.0}"
-OUT="${OUT:-$ROOT/out/spoti.pw-$MOD_VERSION.ipa}"
-echo "==> spoti.pw $MOD_VERSION on Spotify $SPOTIFY_VERSION -> $OUT"
+OUT="${OUT:-$ROOT/out/EliSpot-$MOD_VERSION.ipa}"
+echo "==> EliSpot $MOD_VERSION on Spotify $SPOTIFY_VERSION -> $OUT"
 
 # The flag table is generated rather than committed, so it always matches the IPA being built.
 if [ ! -f "$ROOT/tweak/Sources/Shared/Flags/SGFlagList.m" ]; then
