@@ -6,33 +6,52 @@
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
 static UILabel *ELLoadBanner = nil;
+static UILabel *ELTabBanner = nil;
 
-static void ELShowLoadBanner(void) {
-    if (ELLoadBanner) return;
-
+static UILabel *ELBanner(NSString *text, UIColor *color, CGFloat y) {
     UIWindow *window = ELKeyWindow();
-    if (!window) return;
+    if (!window) return nil;
 
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(20, 70, window.bounds.size.width - 40, 44)];
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(16, y, window.bounds.size.width - 32, 48)];
     label.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-    label.backgroundColor = [UIColor colorWithRed:0.08 green:0.85 blue:0.35 alpha:0.95];
+    label.backgroundColor = color;
     label.textColor = UIColor.blackColor;
-    label.font = [UIFont systemFontOfSize:16 weight:UIFontWeightBold];
+    label.font = [UIFont systemFontOfSize:13 weight:UIFontWeightBold];
     label.textAlignment = NSTextAlignmentCenter;
-    label.text = @"EliSpot LOADED";
+    label.numberOfLines = 2;
+    label.text = text;
     label.layer.cornerRadius = 14;
     label.layer.cornerCurve = kCACornerCurveContinuous;
     label.clipsToBounds = YES;
     [window addSubview:label];
-    ELLoadBanner = label;
+    return label;
+}
 
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4.0 * NSEC_PER_SEC)),
+static void ELShowLoadBanner(void) {
+    if (ELLoadBanner) return;
+    ELLoadBanner = ELBanner(@"EliSpot LOADED",
+                            [UIColor colorWithRed:0.08 green:0.85 blue:0.35 alpha:0.95],
+                            70);
+}
+
+static void ELShowTabFoundBanner(UIView *tabBar, NSUInteger itemCount) {
+    if (ELTabBanner) return;
+
+    NSString *name = NSStringFromClass(tabBar.class);
+    NSString *text = [NSString stringWithFormat:@"TABBAR FOUND (%lu)\n%@",
+                      (unsigned long)itemCount, name];
+
+    ELTabBanner = ELBanner(text,
+                          [UIColor colorWithRed:0.25 green:0.70 blue:1.0 alpha:0.96],
+                          124);
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.25 animations:^{
-            label.alpha = 0;
+            ELTabBanner.alpha = 0;
         } completion:^(BOOL finished) {
-            [label removeFromSuperview];
-            if (ELLoadBanner == label) ELLoadBanner = nil;
+            [ELTabBanner removeFromSuperview];
+            ELTabBanner = nil;
         }];
     });
 }
@@ -45,15 +64,21 @@ static void ELInstallIfPossible(void) {
 
     UIView *spotifyBar = ELFindSpotifyTabBar(window.rootViewController.view);
     if (!spotifyBar) {
-        NSLog(@"[EliSpot] loaded; waiting for Spotify TabBarView");
+        NSLog(@"[EliSpot] 9.1.78 scan: no tab bar candidate yet");
         return;
     }
 
     NSArray *items = ELSpotifyTabItems(spotifyBar);
-    NSLog(@"[EliSpot] found Spotify TabBarView with %lu item views",
+    ELShowTabFoundBanner(spotifyBar, items.count);
+
+    NSLog(@"[EliSpot] 9.1.78 tab bar %@ with %lu items",
+          NSStringFromClass(spotifyBar.class),
           (unsigned long)items.count);
 
-    if (items.count < 3) return;
+    if (items.count < 3) {
+        NSLog(@"[EliSpot] candidate found but item count is too low");
+        return;
+    }
 
     ELFadeSpotifyTabBar(spotifyBar);
 
@@ -89,7 +114,7 @@ static void ELInstallIfPossible(void) {
         )];
         ELMini.autoresizingMask =
             UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-        [ELMini setTitle:@"Now Playing" subtitle:@"Spotify" artwork:nil];
+        [ELMini setTitle:@"Now Playing" subtitle:@"Spotify 9.1.78" artwork:nil];
         [window addSubview:ELMini];
         NSLog(@"[EliSpot] mini player shell installed");
     }
@@ -105,10 +130,17 @@ static void ELInstallIfPossible(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] dylib loaded");
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
+    NSLog(@"[EliSpot] dylib loaded (Spotify 9.1.78 diagnostic build)");
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELShowLoadBanner();
-        ELInstallIfPossible();
     });
+
+    for (NSInteger i = 1; i <= 8; i++) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(i * 0.75 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            ELInstallIfPossible();
+        });
+    }
 }
