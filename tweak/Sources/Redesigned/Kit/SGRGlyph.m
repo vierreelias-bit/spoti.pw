@@ -33,8 +33,23 @@ static const CGFloat kMinTouch = 44, kPressAlpha = 0.5, kPressScale = 0.9, kDisa
     if (@available(iOS 17.0, *)) {
         if (animated && image && self.window && !SGRReduceMotion()) {
             // Twice UIKit's pace: a control's glyph answers a tap, and the default replace lingers.
-            [self setSymbolImage:image withContentTransition:[NSSymbolReplaceContentTransition transition] options:[NSSymbolEffectOptions optionsWithSpeed:2]];
-            return;
+            Class transitionClass = NSClassFromString(@"NSSymbolReplaceContentTransition");
+            Class optionsClass = NSClassFromString(@"NSSymbolEffectOptions");
+            SEL transitionSel = NSSelectorFromString(@"transition");
+            SEL speedSel = NSSelectorFromString(@"optionsWithSpeed:");
+            SEL setSel = NSSelectorFromString(@"setSymbolImage:withContentTransition:options:");
+            if (transitionClass && optionsClass &&
+                [transitionClass respondsToSelector:transitionSel] &&
+                [optionsClass respondsToSelector:speedSel] &&
+                [self respondsToSelector:setSel]) {
+                id (*makeTransition)(id, SEL) = (void *)[transitionClass methodForSelector:transitionSel];
+                id (*makeOptions)(id, SEL, double) = (void *)[optionsClass methodForSelector:speedSel];
+                id transition = makeTransition(transitionClass, transitionSel);
+                id options = makeOptions(optionsClass, speedSel, 2.0);
+                void (*setTransition)(id, SEL, id, id, id) = (void *)[self methodForSelector:setSel];
+                setTransition(self, setSel, image, transition, options);
+                return;
+            }
         }
     }
     self.image = image;
