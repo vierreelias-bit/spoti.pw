@@ -1,17 +1,46 @@
 #import "ELMiniPlayer.h"
 #import <QuartzCore/QuartzCore.h>
 #import <AVKit/AVKit.h>
+#import <objc/message.h>
+
+static UIVisualEffect *ELGlassWithFallback(UIBlurEffectStyle fallback) {
+    Class glass = NSClassFromString(@"UIGlassEffect");
+    SEL factory = NSSelectorFromString(@"effectWithStyle:");
+    if (glass && [glass respondsToSelector:factory]) {
+        return ((id (*)(id, SEL, NSInteger))objc_msgSend)(glass, factory, 0);
+    }
+    return [UIBlurEffect effectWithStyle:fallback];
+}
 
 static UIVisualEffect *ELMiniGlass(void) {
-    Class glass = NSClassFromString(@"UIGlassEffect");
-    if (glass) return [[glass alloc] init];
-    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+    return ELGlassWithFallback(UIBlurEffectStyleSystemChromeMaterialDark);
 }
 
 static UIVisualEffect *ELCardGlass(void) {
-    Class glass = NSClassFromString(@"UIGlassEffect");
-    if (glass) return [[glass alloc] init];
-    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemMaterialDark];
+    return ELGlassWithFallback(UIBlurEffectStyleSystemMaterialDark);
+}
+
+static void ELShapeGlass(UIView *glass, CGFloat radius, BOOL capsule) {
+    Class config = NSClassFromString(@"UICornerConfiguration");
+    Class cornerRadius = NSClassFromString(@"UICornerRadius");
+    id shape = nil;
+    if (config && [glass respondsToSelector:NSSelectorFromString(@"setCornerConfiguration:")]) {
+        if (capsule && [config respondsToSelector:NSSelectorFromString(@"capsuleConfiguration")]) {
+            shape = ((id (*)(id, SEL))objc_msgSend)(config, NSSelectorFromString(@"capsuleConfiguration"));
+        } else if ([config respondsToSelector:NSSelectorFromString(@"configurationWithUniformRadius:")] &&
+                   [cornerRadius respondsToSelector:NSSelectorFromString(@"fixedRadius:")]) {
+            id fixed = ((id (*)(id, SEL, CGFloat))objc_msgSend)(cornerRadius, NSSelectorFromString(@"fixedRadius:"), radius);
+            shape = ((id (*)(id, SEL, id))objc_msgSend)(config, NSSelectorFromString(@"configurationWithUniformRadius:"), fixed);
+        }
+    }
+    if (shape) {
+        ((void (*)(id, SEL, id))objc_msgSend)(glass, NSSelectorFromString(@"setCornerConfiguration:"), shape);
+        glass.clipsToBounds = NO;
+    } else {
+        glass.layer.cornerRadius = capsule ? glass.bounds.size.height / 2.0 : radius;
+        glass.layer.cornerCurve = kCACornerCurveContinuous;
+        glass.clipsToBounds = YES;
+    }
 }
 
 static UIColor *ELGreen(void) {
@@ -73,11 +102,8 @@ static UIColor *ELGreen(void) {
     self.layer.shadowOffset = CGSizeMake(0, 10);
 
     _glass = [[UIVisualEffectView alloc] initWithEffect:ELMiniGlass()];
-    _glass.layer.cornerRadius = 31;
-    _glass.layer.cornerCurve = kCACornerCurveContinuous;
     _glass.layer.borderWidth = .7;
     _glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:.18].CGColor;
-    _glass.clipsToBounds = YES;
     [self addSubview:_glass];
 
     UIView *shade = [UIView new];
@@ -133,6 +159,7 @@ static UIColor *ELGreen(void) {
 - (void)layoutSubviews {
     [super layoutSubviews];
     self.glass.frame = self.bounds;
+    ELShapeGlass(self.glass, 31, YES);
     [self.glass.contentView viewWithTag:3001].frame = self.glass.bounds;
 
     CGFloat h = self.bounds.size.height;
