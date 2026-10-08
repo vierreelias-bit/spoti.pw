@@ -132,7 +132,7 @@ NSString *SGT(NSString *english) {
             @"Audio": @"Ääni",
             @"Current language": @"Nykyinen kieli",
             @"Automatic": @"Automaattinen",
-            @"Native look": @"Perinteinen ulkoasu",
+            @"Native look": @"Perinteinen ulkoasu"
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -222,7 +222,7 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Lägg till i biblioteket",
             @"Tab bar and animated artwork": @"Flikfält och animerade omslag",
             @"0.50-style player and lyrics": @"0.50-liknande spelare och låttexter",
-            @"Overridden by another setting": @"Åsidosatt av en annan inställning",
+            @"Overridden by another setting": @"Åsidosatt av en annan inställning"
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -312,7 +312,7 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Zur Bibliothek hinzufügen",
             @"Tab bar and animated artwork": @"Tab-Leiste und animierte Cover",
             @"0.50-style player and lyrics": @"0.50-Player und Songtexte",
-            @"Overridden by another setting": @"Durch andere Einstellung überschrieben",
+            @"Overridden by another setting": @"Durch andere Einstellung überschrieben"
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -402,7 +402,7 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Añadir a la biblioteca",
             @"Tab bar and animated artwork": @"Pestañas y portadas animadas",
             @"0.50-style player and lyrics": @"Reproductor y letras estilo 0.50",
-            @"Overridden by another setting": @"Anulado por otro ajuste",
+            @"Overridden by another setting": @"Anulado por otro ajuste"
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -492,8 +492,8 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Ajouter à la bibliothèque",
             @"Tab bar and animated artwork": @"Onglets et pochettes animées",
             @"0.50-style player and lyrics": @"Lecteur et paroles style 0.50",
-            @"Overridden by another setting": @"Remplacé par un autre réglage",
-        },
+            @"Overridden by another setting": @"Remplacé par un autre réglage"
+        }
         };
     });
     return translations[code][english] ?: english;
