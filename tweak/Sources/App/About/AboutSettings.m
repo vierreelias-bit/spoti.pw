@@ -32,6 +32,23 @@ static SGModRow *withSymbol(SGModRow *row, NSString *symbol) {
     return row;
 }
 
+// The changelog is available on demand. EliSpot never shows update/donation popups.
+static UIViewController *v30WhatsNew(void) {
+    return [[SGModPage alloc] initWithTitle:@"What's new"
+        intro:@"EliSpot v30 is still in development. These changes are implemented in the v30 branch."
+        sections:@[
+            SGSection(@"Added so far", @[
+                SGStatRow(@"Apple Music red accent", ^NSString *{ return @"Both looks"; }),
+                SGStatRow(@"Album track artist switch", ^NSString *{ return @"Redesign"; }),
+            ]),
+            SGNotedSection(@"Planned", @[
+                SGStatRow(@"0.50-style player and lyrics", ^NSString *{ return @"In progress"; }),
+                SGStatRow(@"Tab bar and animated artwork", ^NSString *{ return @"In progress"; }),
+            ], @"The complete progress list is in ELISPOT_V30_PLAN.md on GitHub."),
+        ]
+        footer:nil];
+}
+
 // Which build this is, whether GitHub has a newer release, and where to reach the mod: without these
 // rows a build that is already installed has no way of telling its user that anything moved on.
 UIViewController *SGAboutPage(void) {
@@ -47,6 +64,7 @@ UIViewController *SGAboutPage(void) {
             withSymbol(SGLinkRow(@"Website", nil, SGSiteURL), @"safari"),
             withSymbol(SGLinkRow(@"GitHub", nil, SGRepoURL), @"chevron.left.forwardslash.chevron.right"),
             withSymbol(SGActionRow(@"Welcome tour", nil, ^{ SGShowOnboarding(); }), @"map"),
+            withSymbol(SGPageRow(@"What's new in v30", ^UIViewController *{ return v30WhatsNew(); }), @"sparkles"),
         ]),
         SGSection(nil, @[
             withSymbol(SGActionRow(@"Export settings", nil, ^{ SGExportSettings(); }), @"square.and.arrow.up"),
