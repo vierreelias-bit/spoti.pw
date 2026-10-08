@@ -115,11 +115,15 @@ static UIVisualEffect *ELGlassEffect(void) {
     for (NSInteger i = 0; i < 4; i++) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
         button.tag = i;
-        button.backgroundColor = UIColor.clearColor;
+        button.backgroundColor = [UIColor colorWithWhite:1 alpha:.018];
         button.tintColor = UIColor.whiteColor;
+        button.layer.cornerRadius = 22;
+        button.layer.cornerCurve = kCACornerCurveContinuous;
+        button.layer.borderWidth = .45;
+        button.layer.borderColor = [UIColor colorWithWhite:1 alpha:.07].CGColor;
 
         UIImageSymbolConfiguration *cfg =
-            [UIImageSymbolConfiguration configurationWithPointSize:20 weight:UIImageSymbolWeightSemibold];
+            [UIImageSymbolConfiguration configurationWithPointSize:17 weight:UIImageSymbolWeightMedium];
         [button setImage:[UIImage systemImageNamed:icons[i] withConfiguration:cfg] forState:UIControlStateNormal];
         [button addTarget:self action:@selector(tabPressed:) forControlEvents:UIControlEventTouchUpInside];
 
@@ -148,10 +152,12 @@ static UIVisualEffect *ELGlassEffect(void) {
     self.itemWidth = (self.bounds.size.width - pad * 2) / 4.0;
 
     for (NSInteger i = 0; i < self.buttons.count; i++) {
-        self.buttons[i].frame = CGRectMake(pad + self.itemWidth * i,
-                                           3,
-                                           self.itemWidth,
-                                           self.bounds.size.height - 6);
+        CGFloat buttonSide = 44.0;
+        CGFloat cx = pad + self.itemWidth * i + self.itemWidth / 2.0;
+        self.buttons[i].frame = CGRectMake(cx - buttonSide / 2.0,
+                                           (self.bounds.size.height - buttonSide) / 2.0,
+                                           buttonSide,
+                                           buttonSide);
     }
 
     if (!self.dragging) [self placeLens:self.selectedIndex];
@@ -176,8 +182,9 @@ static UIVisualEffect *ELGlassEffect(void) {
     for (NSInteger i = 0; i < self.buttons.count; i++) {
         UIButton *button = self.buttons[i];
         BOOL active = i == index;
-        button.alpha = active ? 1.0 : .56;
-        button.transform = active ? CGAffineTransformMakeScale(1.06, 1.06)
+        button.alpha = active ? .98 : .52;
+        button.backgroundColor = [UIColor colorWithWhite:1 alpha:(active ? .045 : .015)];
+        button.transform = active ? CGAffineTransformMakeScale(1.03, 1.03)
                                   : CGAffineTransformIdentity;
     }
 }
