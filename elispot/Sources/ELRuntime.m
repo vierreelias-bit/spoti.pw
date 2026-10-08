@@ -197,7 +197,7 @@ static void ELFindArtwork(UIView *root, UIImageView **best, CGFloat *bestArea) {
         CGSize size = imageView.bounds.size;
         CGFloat area = size.width * size.height;
         BOOL squareish = fabs(size.width - size.height) < MAX(8.0, size.width * 0.18);
-        if (imageView.image && squareish && size.width >= 28 && size.width <= 140 && area > *bestArea) {
+        if (imageView.image && squareish && size.width >= 20 && size.width <= 620 && area > *bestArea) {
             *best = imageView;
             *bestArea = area;
         }
