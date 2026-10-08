@@ -2,9 +2,9 @@
   <img src="docs/icon.png" width="96" alt="">
 </p>
 
-<h1 align="center">spoti.pw</h1>
+<h1 align="center">EliSpot</h1>
 
-<p align="center">Spotify, in glass.</p>
+<p align="center">A personal EliSpot fork of spoti.pw — Spotify, in glass.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios&logoColor=white" alt="iOS">
@@ -30,7 +30,7 @@
   <img src="docs/screenshots/home.webp" width="16%" alt="Home">
 </p>
 
-A no-jailbreak Theos tweak that rebuilds Spotify for iOS in Liquid Glass, injected into your own
+EliSpot is a GPL-3.0 fork of spoti.pw. It is a no-jailbreak Theos tweak that rebuilds Spotify for iOS in Liquid Glass, injected into your own
 decrypted IPA and signed with your own certificate.
 
 Built and tested on **Spotify 9.1.78** — use that version's IPA. The mod hooks Spotify's own classes,
@@ -49,7 +49,7 @@ in Settings → Mod Settings.
 ## Build it
 
 No IPA is distributed. Bring a decrypted **Spotify 9.1.78** IPA; you get an unsigned
-`spoti.pw-<mod version>.ipa` to sign with SideStore, Feather or any certificate signer. Each
+`EliSpot-<mod version>.ipa` to sign with SideStore, Feather or any certificate signer. Each
 [release](https://github.com/skopevoj/spoti.pw/releases) also carries the tweak's `.deb`.
 
 ### Build with GitHub Actions
