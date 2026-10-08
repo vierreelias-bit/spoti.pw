@@ -140,8 +140,11 @@ static void ELTogglePlayback(void) {
 
 static UIVisualEffect *ELTransitionGlass(void) {
     Class glass = NSClassFromString(@"UIGlassEffect");
-    if (glass) return [[glass alloc] init];
-    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+    SEL factory = NSSelectorFromString(@"effectWithStyle:");
+    if (glass && [glass respondsToSelector:factory]) {
+        return ((id (*)(id, SEL, NSInteger))objc_msgSend)(glass, factory, 0);
+    }
+    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
 }
 
 static void ELOpenFullPlayer(void) {
@@ -430,7 +433,12 @@ static void ELInstallUI(void) {
     ELLayoutOverlayHost();
     ELApplyAppearance();
 
-    [host bringSubviewToFront:ELOverlayHost];
+    if (!ELFullPlayerVisible && !ELOpeningPlayer) {
+        ELOverlayHost.hidden = NO;
+        ELOverlayHost.alpha = 1.0;
+        ELOverlayHost.userInteractionEnabled = YES;
+        [host bringSubviewToFront:ELOverlayHost];
+    }
 }
 
 %hook SPTEsperantoPlayer
@@ -561,6 +569,44 @@ static void ELInstallUI(void) {
 }
 %end
 
+%hook _TtC23NavigationUI_TabBarImpl10TabBarView
+- (void)layoutSubviews {
+    %orig;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        ELInstallUI();
+        if (!ELFullPlayerVisible && !ELOpeningPlayer) {
+            ELOverlayHost.hidden = NO;
+            ELOverlayHost.alpha = 1.0;
+            ELOverlayHost.userInteractionEnabled = YES;
+            [ELBar syncFromSpotify];
+            ELLayoutOverlayHost();
+            UIView *host = ELChromeHost();
+            if (host && ELOverlayHost.superview == host) [host bringSubviewToFront:ELOverlayHost];
+        }
+    });
+}
+%end
+
+%hook _TtC23NavigationUI_TabBarImpl21TabBarItemElementView
+- (void)layoutSubviews {
+    %orig;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        ELInstallUI();
+        [ELBar syncFromSpotify];
+    });
+}
+%end
+
+%hook _TtC25CreateMenu_TabBarItemImpl24CreateMenuTabBarItemView
+- (void)layoutSubviews {
+    %orig;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        ELInstallUI();
+        [ELBar syncFromSpotify];
+    });
+}
+%end
+
 %hook UIWindow
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
     if (ELOverlayHost && !ELOverlayHost.hidden && ELOverlayHost.alpha > .01 && ELOverlayHost.userInteractionEnabled) {
@@ -585,7 +631,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.11");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.12");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
