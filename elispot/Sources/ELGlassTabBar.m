@@ -5,13 +5,6 @@
 @interface ELRGBRing : UIView
 @property(nonatomic,strong) CAGradientLayer *gradient;
 @property(nonatomic,strong) CAShapeLayer *maskLayer;
-- (void)setGlassOpacity:(CGFloat)opacity {
-    CGFloat value = MIN(1.0, MAX(0.20, opacity));
-    self.pill.alpha = value;
-    self.lens.alpha = value;
-    self.ring.alpha = MIN(1.0, value + .05);
-}
-
 @end
 
 @implementation ELRGBRing
@@ -275,6 +268,13 @@ static UIVisualEffect *ELGlassEffect(void) {
     self.previewIndex = index;
     [self placeLens:index];
     [self refreshButtonsForIndex:index];
+}
+
+- (void)setGlassOpacity:(CGFloat)opacity {
+    CGFloat value = MIN(1.0, MAX(0.20, opacity));
+    self.pill.alpha = value;
+    self.lens.alpha = value;
+    self.ring.alpha = MIN(1.0, value + .05);
 }
 
 @end
