@@ -22,7 +22,6 @@
 #import "Shared/JamesDSP/JamesDSPPage.h"
 #import "Shared/LiveActivity/LiveActivity.h"
 #import "App/About/About.h"
-#import "App/Donate/Donate.h"
 #import "Pages.h"
 
 static const CGFloat kRowHeight = 56;
@@ -33,14 +32,11 @@ static SGModRow *pageRow(NSString *title, NSString *symbol, UIViewController *(^
 }
 
 static UIViewController *modSettingsPage(void) {
-    // Opening the page is the only thing that asks; the cache keeps it to once every six hours.
-    SGCheckForUpdate(NO);
     NSMutableArray<SGModSection *> *sections = [NSMutableArray array];
     // A build the lock screen cannot open leads the page, above the tweaks: it is the one thing here
     // that no switch can put right, and it is worth reading before anything else.
     SGModRow *signing = SGSigningWarningRow();
     if (signing) [sections addObject:SGSection(nil, @[signing])];
-    [sections addObject:SGSection(nil, @[SGDonateRow()])];
     SGModRow *mod = pageRow(@"Mod", @"info.circle", ^UIViewController *{ return SGAboutPage(); });
     mod.value = ^NSString *{ return @(SG_VERSION); };
     // JamesDSP works on the sound, so both looks have it, with what it is doing beside the chevron.
@@ -248,6 +244,4 @@ static BOOL isSettingsRoot(UIViewController *list) {
     SGRequireClasses(@[@"_TtC21Settings_PlatformImpl26SettingsListViewController", @"_TtC23SideDrawer_ListPageImpl18ListViewController"]);
     SGRegisterPages();
     SGCheckSigningOnce();
-    SGWatchForUpdates();
-    SGWatchForDonate();
 }
