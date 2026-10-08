@@ -1,7 +1,7 @@
-Package: com.spotipw
-Name: spoti.pw
+Package: i.elias.elispot
+Name: EliSpot
 Architecture: iphoneos-arm
-Description: Liquid Glass for the Spotify iOS app
-Maintainer: spoti.pw
-Author: spoti.pw
+Description: EliSpot — Liquid Glass Spotify iOS mod based on spoti.pw.
+Maintainer: Elias
+Author: spoti.pw contributors + Elias
 Section: Tweaks
