@@ -60,8 +60,15 @@ static UIViewController *modSettingsPage(void) {
     } else {
         [parts addObject:pageRow(@"Home & Library", @"house", ^UIViewController *{ return SGHomeSettingsPage(); })];
     }
+    // v30 only: app-independent language preference for EliSpot's own UI.
+    SGModRow *language = SGWithSymbol(
+        SGChoiceRow(@"Language",
+                    @"EliSpot settings only; Spotify uses its own language settings.",
+                    SGKeyLanguage, SGLanguageNames(), 0), @"globe");
+    language.choiceFooter = @"Changes apply after you restart Spotify.";
     [sections addObjectsFromArray:@[
         SGAppearanceSection(),
+        SGSection(nil, @[language]),
         SGSection(nil, parts),
         SGSection(nil, @[
             pageRow(@"Privacy & clutter", @"hand.raised", ^UIViewController *{ return SGPrivacySettingsPage(); }),
@@ -93,7 +100,7 @@ static UIViewController *modSettingsPage(void) {
     if (!(self = [super initWithFrame:frame])) return nil;
     _icon = SGSymbolView(@"slider.horizontal.3", 20, UIImageSymbolWeightRegular, 24);
     _title = [UILabel new];
-    _title.text = @"EliSpot Settings";
+    _title.text = SGT(@"EliSpot Settings");
     _title.textColor = UIColor.whiteColor;
     _chevron = SGSymbolView(@"chevron.right", 11, UIImageSymbolWeightSemibold, 12);
     for (UIView *v in @[_icon, _title, _chevron]) [self addSubview:v];
@@ -104,6 +111,7 @@ static UIViewController *modSettingsPage(void) {
 - (void)layoutSubviews {
     [super layoutSubviews];
     _title.font = SGTitleFont();
+    _title.text = SGT(@"EliSpot Settings");
     CGFloat width = self.bounds.size.width, height = self.bounds.size.height, lead = self.drawer ? 4 : 0;
     _icon.frame = CGRectMake(12 + lead, (height - 24) / 2, 24, 24);
     _title.frame = CGRectMake(48 + lead, 0, width - 96, height);
