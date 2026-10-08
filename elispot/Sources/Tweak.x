@@ -138,38 +138,6 @@ static void ELTogglePlayback(void) {
     ((id (*)(id, SEL, id))objc_msgSend)(player, sel, nil);
 }
 
-static BOOL ELSkipNext(void) {
-    id player = ELSpotifyPlayer;
-    if (!player) return NO;
-
-    SEL direct = @selector(skipToNextTrack);
-    if ([player respondsToSelector:direct]) {
-        ((void (*)(id, SEL))objc_msgSend)(player, direct);
-        return YES;
-    }
-
-    SEL options = @selector(skipToNextTrackWithOptions:);
-    if ([player respondsToSelector:options]) {
-        ((id (*)(id, SEL, id))objc_msgSend)(player, options, nil);
-        return YES;
-    }
-
-    return NO;
-}
-
-static BOOL ELSkipPrevious(void) {
-    id player = ELSpotifyPlayer;
-    if (!player) return NO;
-
-    SEL options = @selector(skipToPreviousTrackWithOptions:);
-    if ([player respondsToSelector:options]) {
-        ((id (*)(id, SEL, id))objc_msgSend)(player, options, nil);
-        return YES;
-    }
-
-    return NO;
-}
-
 static UIVisualEffect *ELTransitionGlass(void) {
     Class glass = NSClassFromString(@"UIGlassEffect");
     if (glass) return [[glass alloc] init];
@@ -599,7 +567,7 @@ static void ELInstallUI(void) {
 %end
 
 %ctor {
-    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.9");
+    NSLog(@"[EliSpot] loaded: Spotify 9.1.78 glass player v0.3.10");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         ELInstallUI();
