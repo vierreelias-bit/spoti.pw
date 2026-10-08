@@ -53,15 +53,25 @@ void SGShapeGlass(UIView *glass, CGFloat radius, BOOL capsule) {
     Class config = NSClassFromString(@"UICornerConfiguration");
     Class cornerRadius = NSClassFromString(@"UICornerRadius");
     id shape = nil;
-    if (config && [glass respondsToSelector:@selector(setCornerConfiguration:)]) {
-        if (capsule && [config respondsToSelector:@selector(capsuleConfiguration)]) {
-            shape = [config capsuleConfiguration];
-        } else if ([config respondsToSelector:@selector(configurationWithUniformRadius:)] && [cornerRadius respondsToSelector:@selector(fixedRadius:)]) {
-            shape = [config configurationWithUniformRadius:[cornerRadius fixedRadius:radius]];
+    SEL setCorner = NSSelectorFromString(@"setCornerConfiguration:");
+    SEL capsuleConfig = NSSelectorFromString(@"capsuleConfiguration");
+    SEL uniformRadius = NSSelectorFromString(@"configurationWithUniformRadius:");
+    SEL fixedRadius = NSSelectorFromString(@"fixedRadius:");
+
+    if (config && [glass respondsToSelector:setCorner]) {
+        if (capsule && [config respondsToSelector:capsuleConfig]) {
+            id (*call0)(id, SEL) = (void *)[config methodForSelector:capsuleConfig];
+            shape = call0(config, capsuleConfig);
+        } else if ([config respondsToSelector:uniformRadius] && [cornerRadius respondsToSelector:fixedRadius]) {
+            id (*callRadius)(id, SEL, CGFloat) = (void *)[cornerRadius methodForSelector:fixedRadius];
+            id corner = callRadius(cornerRadius, fixedRadius, radius);
+            id (*callObject)(id, SEL, id) = (void *)[config methodForSelector:uniformRadius];
+            shape = callObject(config, uniformRadius, corner);
         }
     }
     if (shape) {
-        [glass setCornerConfiguration:shape];
+        void (*setObject)(id, SEL, id) = (void *)[glass methodForSelector:setCorner];
+        setObject(glass, setCorner, shape);
         glass.clipsToBounds = NO;
     } else {
         glass.layer.cornerRadius = capsule ? glass.bounds.size.height / 2 : radius;
