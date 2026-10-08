@@ -7,7 +7,11 @@ static UIVisualEffect *ELMiniGlass(void) {
     return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
 }
 
-static NSString *ELTimeString(NSTimeInterval seconds) {
+static UIColor *ELGreen(void) {
+    return [UIColor colorWithRed:30.0/255.0 green:215.0/255.0 blue:96.0/255.0 alpha:1.0];
+}
+
+static NSString *ELTime(NSTimeInterval seconds) {
     if (!isfinite(seconds) || seconds < 0) seconds = 0;
     NSInteger value = (NSInteger)llround(seconds);
     return [NSString stringWithFormat:@"%ld:%02ld", (long)(value / 60), (long)(value % 60)];
@@ -21,21 +25,35 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 @property(nonatomic,strong) UILabel *timeLabel;
 @property(nonatomic,strong) UIView *progressTrack;
 @property(nonatomic,strong) UIView *progressFill;
+@property(nonatomic,strong) UIButton *likeButton;
+@property(nonatomic,strong) UIButton *previousButton;
 @property(nonatomic,strong) UIButton *playButton;
+@property(nonatomic,strong) UIButton *nextButton;
 @property(nonatomic,assign) CGFloat progress;
 @end
 
 @implementation ELMiniPlayer
 
+- (UIButton *)button:(NSString *)symbol action:(SEL)action {
+    UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+    b.tintColor = ELGreen();
+    b.backgroundColor = [UIColor colorWithWhite:1 alpha:.045];
+    b.layer.cornerRadius = 15;
+    b.layer.cornerCurve = kCACornerCurveContinuous;
+    b.layer.borderWidth = .45;
+    b.layer.borderColor = [UIColor colorWithWhite:1 alpha:.10].CGColor;
+    UIImageSymbolConfiguration *cfg =
+        [UIImageSymbolConfiguration configurationWithPointSize:12.5 weight:UIImageSymbolWeightBold];
+    [b setImage:[UIImage systemImageNamed:symbol withConfiguration:cfg] forState:UIControlStateNormal];
+    [b addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    return b;
+}
+
 - (instancetype)initWithFrame:(CGRect)frame {
     if (!(self = [super initWithFrame:frame])) return nil;
 
-    self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
     self.backgroundColor = UIColor.clearColor;
-    self.layer.shadowColor = UIColor.blackColor.CGColor;
-    self.layer.shadowOpacity = .18;
-    self.layer.shadowRadius = 18;
-    self.layer.shadowOffset = CGSizeMake(0, 8);
+    self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
 
     _glass = [[UIVisualEffectView alloc] initWithEffect:ELMiniGlass()];
     _glass.layer.cornerRadius = 23;
@@ -54,27 +72,24 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
     _artworkView.contentMode = UIViewContentModeScaleAspectFill;
     _artworkView.backgroundColor = [UIColor colorWithWhite:1 alpha:.05];
     _artworkView.layer.cornerRadius = 14;
-    _artworkView.layer.cornerCurve = kCACornerCurveContinuous;
     _artworkView.clipsToBounds = YES;
     [_glass.contentView addSubview:_artworkView];
 
     _titleLabel = [UILabel new];
-    _titleLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightSemibold];
+    _titleLabel.font = [UIFont systemFontOfSize:13.5 weight:UIFontWeightSemibold];
     _titleLabel.textColor = UIColor.whiteColor;
     _titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
     [_glass.contentView addSubview:_titleLabel];
 
     _subtitleLabel = [UILabel new];
-    _subtitleLabel.font = [UIFont systemFontOfSize:11.5 weight:UIFontWeightMedium];
+    _subtitleLabel.font = [UIFont systemFontOfSize:11 weight:UIFontWeightMedium];
     _subtitleLabel.textColor = [UIColor colorWithWhite:1 alpha:.58];
-    _subtitleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
     [_glass.contentView addSubview:_subtitleLabel];
 
     _timeLabel = [UILabel new];
-    _timeLabel.font = [UIFont monospacedDigitSystemFontOfSize:10 weight:UIFontWeightMedium];
+    _timeLabel.font = [UIFont monospacedDigitSystemFontOfSize:9.5 weight:UIFontWeightMedium];
     _timeLabel.textColor = [UIColor colorWithWhite:1 alpha:.50];
     _timeLabel.textAlignment = NSTextAlignmentRight;
-    _timeLabel.text = @"0:00 / 0:00";
     [_glass.contentView addSubview:_timeLabel];
 
     _progressTrack = [UIView new];
@@ -83,21 +98,21 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
     [_glass.contentView addSubview:_progressTrack];
 
     _progressFill = [UIView new];
-    _progressFill.backgroundColor = [UIColor colorWithWhite:1 alpha:.70];
+    _progressFill.backgroundColor = ELGreen();
     _progressFill.layer.cornerRadius = 1.5;
     [_progressTrack addSubview:_progressFill];
 
-    _playButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    _playButton.tintColor = UIColor.whiteColor;
-    _playButton.backgroundColor = [UIColor colorWithWhite:1 alpha:.055];
-    _playButton.layer.cornerRadius = 17;
-    _playButton.layer.cornerCurve = kCACornerCurveContinuous;
-    _playButton.layer.borderWidth = .45;
-    _playButton.layer.borderColor = [UIColor colorWithWhite:1 alpha:.11].CGColor;
-    [_playButton addTarget:self action:@selector(playPauseTapped) forControlEvents:UIControlEventTouchUpInside];
-    [_glass.contentView addSubview:_playButton];
+    _likeButton = [self button:@"heart" action:@selector(likeTapped)];
+    _previousButton = [self button:@"backward.fill" action:@selector(previousTapped)];
+    _playButton = [self button:@"play.fill" action:@selector(playTapped)];
+    _nextButton = [self button:@"forward.fill" action:@selector(nextTapped)];
 
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(openTapped:)];
+    for (UIButton *b in @[_likeButton, _previousButton, _playButton, _nextButton]) {
+        [_glass.contentView addSubview:b];
+    }
+
+    UITapGestureRecognizer *tap =
+        [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(openTapped:)];
     tap.cancelsTouchesInView = NO;
     [self addGestureRecognizer:tap];
 
@@ -106,36 +121,35 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-
     self.glass.frame = self.bounds;
     [self.glass.contentView viewWithTag:3001].frame = self.glass.bounds;
 
     CGFloat h = self.bounds.size.height;
-    CGFloat artwork = h - 12;
-    self.artworkView.frame = CGRectMake(6, 6, artwork, artwork);
+    CGFloat art = h - 12;
+    self.artworkView.frame = CGRectMake(6, 6, art, art);
 
-    CGFloat buttonSide = 34;
-    self.playButton.frame = CGRectMake(self.bounds.size.width - buttonSide - 8,
-                                       (h - buttonSide) / 2.0,
-                                       buttonSide,
-                                       buttonSide);
+    CGFloat bs = 30, gap = 5;
+    CGFloat total = bs * 4 + gap * 3;
+    CGFloat x = self.bounds.size.width - total - 8;
+
+    NSArray<UIButton *> *buttons = @[self.likeButton, self.previousButton, self.playButton, self.nextButton];
+    for (NSInteger i = 0; i < buttons.count; i++) {
+        buttons[i].frame = CGRectMake(x + i * (bs + gap), 6, bs, bs);
+    }
 
     CGFloat textX = CGRectGetMaxX(self.artworkView.frame) + 10;
-    CGFloat textRight = CGRectGetMinX(self.playButton.frame) - 9;
+    CGFloat textRight = x - 8;
     CGFloat textWidth = MAX(20, textRight - textX);
 
-    self.titleLabel.frame = CGRectMake(textX, 7, textWidth, 18);
-    self.subtitleLabel.frame = CGRectMake(textX, 24, textWidth, 15);
+    self.titleLabel.frame = CGRectMake(textX, 6, textWidth, 17);
+    self.subtitleLabel.frame = CGRectMake(textX, 22, textWidth, 14);
 
-    CGFloat timeWidth = 78;
-    CGFloat timeRight = CGRectGetMinX(self.playButton.frame) - 7;
-    self.timeLabel.frame = CGRectMake(timeRight - timeWidth, h - 17, timeWidth, 12);
+    CGFloat tw = 76;
+    self.timeLabel.frame = CGRectMake(self.bounds.size.width - tw - 9, h - 16, tw, 11);
 
     CGFloat progressRight = CGRectGetMinX(self.timeLabel.frame) - 8;
-    self.progressTrack.frame = CGRectMake(textX, h - 11, MAX(28, progressRight - textX), 3);
-    self.progressFill.frame = CGRectMake(0, 0,
-                                         self.progressTrack.bounds.size.width * self.progress,
-                                         self.progressTrack.bounds.size.height);
+    self.progressTrack.frame = CGRectMake(textX, h - 10, MAX(30, progressRight - textX), 3);
+    self.progressFill.frame = CGRectMake(0, 0, self.progressTrack.bounds.size.width * self.progress, 3);
 }
 
 - (void)setTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork {
@@ -145,35 +159,44 @@ static NSString *ELTimeString(NSTimeInterval seconds) {
 }
 
 - (void)setPaused:(BOOL)paused {
-    NSString *name = paused ? @"play.fill" : @"pause.fill";
+    NSString *symbol = paused ? @"play.fill" : @"pause.fill";
     UIImageSymbolConfiguration *cfg =
-        [UIImageSymbolConfiguration configurationWithPointSize:13 weight:UIImageSymbolWeightBold];
-    [self.playButton setImage:[UIImage systemImageNamed:name withConfiguration:cfg]
+        [UIImageSymbolConfiguration configurationWithPointSize:12.5 weight:UIImageSymbolWeightBold];
+    [self.playButton setImage:[UIImage systemImageNamed:symbol withConfiguration:cfg]
                      forState:UIControlStateNormal];
-    self.playButton.accessibilityLabel = paused ? @"Toista" : @"Tauko";
+}
+
+- (void)setLiked:(BOOL)liked {
+    NSString *symbol = liked ? @"heart.fill" : @"heart";
+    UIImageSymbolConfiguration *cfg =
+        [UIImageSymbolConfiguration configurationWithPointSize:12.5 weight:UIImageSymbolWeightBold];
+    [self.likeButton setImage:[UIImage systemImageNamed:symbol withConfiguration:cfg]
+                     forState:UIControlStateNormal];
 }
 
 - (void)setPosition:(NSTimeInterval)position duration:(NSTimeInterval)duration {
     if (!isfinite(position) || position < 0) position = 0;
     if (!isfinite(duration) || duration < 0) duration = 0;
     self.progress = duration > 0 ? MIN(1.0, MAX(0.0, position / duration)) : 0;
-    self.timeLabel.text = [NSString stringWithFormat:@"%@ / %@", ELTimeString(position), ELTimeString(duration)];
+    self.timeLabel.text = [NSString stringWithFormat:@"%@ / %@", ELTime(position), ELTime(duration)];
     [self setNeedsLayout];
 }
 
 - (void)setGlassOpacity:(CGFloat)opacity {
-    self.glass.alpha = MIN(1.0, MAX(0.18, opacity));
+    self.glass.alpha = MIN(1.0, MAX(.18, opacity));
 }
 
-- (void)playPauseTapped {
-    if (self.playPauseHandler) self.playPauseHandler();
-}
+- (void)likeTapped { if (self.likeHandler) self.likeHandler(); }
+- (void)previousTapped { if (self.previousHandler) self.previousHandler(); }
+- (void)playTapped { if (self.playPauseHandler) self.playPauseHandler(); }
+- (void)nextTapped { if (self.nextHandler) self.nextHandler(); }
 
 - (void)openTapped:(UITapGestureRecognizer *)tap {
-    CGPoint point = [tap locationInView:self];
-    CGRect playFrame = [self.playButton.superview convertRect:self.playButton.frame toView:self];
-    if (CGRectContainsPoint(playFrame, point)) return;
+    CGPoint p = [tap locationInView:self];
+    for (UIButton *b in @[self.likeButton, self.previousButton, self.playButton, self.nextButton]) {
+        CGRect r = [b.superview convertRect:b.frame toView:self];
+        if (CGRectContainsPoint(r, p)) return;
+    }
     if (self.openHandler) self.openHandler();
 }
-
 @end
