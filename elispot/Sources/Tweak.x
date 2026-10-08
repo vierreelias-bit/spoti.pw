@@ -2,11 +2,9 @@
 #import "ELRuntime.h"
 #import "ELGlassTabBar.h"
 #import "ELMiniPlayer.h"
-#import "ELPlayerOverlay.h"
 
 static ELGlassTabBar *ELBar = nil;
 static ELMiniPlayer *ELMini = nil;
-static ELPlayerOverlay *ELPlayer = nil;
 
 static void ELInstallIfPossible(void) {
     UIWindow *window = ELKeyWindow();
@@ -46,11 +44,6 @@ static void ELInstallIfPossible(void) {
 
     ELBar.spotifyTabBar = spotifyBar;
     [ELBar syncFromSpotify];
-
-    if (!ELMini) {
-        CGFloat miniH = 58.0;
-        ELMinI = nil;
-    }
 
     if (!ELMini) {
         CGFloat miniH = 58.0;
