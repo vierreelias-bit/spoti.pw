@@ -113,7 +113,6 @@ static void styleGlassTint(UIVisualEffectView *glass, CGFloat radius) {
     // A cool light lift makes the mini-player distinct even when the theme
     // accent is dark. Alpha is low enough to keep white labels contrasted.
     film.backgroundColor = [SGRAccent() colorWithAlphaComponent:0.26];
-    glass.backgroundColor = [UIColor colorWithWhite:0.25 alpha:0.18];
     glass.layer.borderColor = [SGRAccent() colorWithAlphaComponent:0.42].CGColor;
     glass.layer.borderWidth = 0.75;
 }
