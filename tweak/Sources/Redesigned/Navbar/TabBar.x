@@ -29,6 +29,8 @@ static CGFloat sg_room, sg_glassHeight;   // see "room for the glass bar"
 @property (nonatomic, weak) UIPanGestureRecognizer *slide;
 @property (nonatomic) BOOL holding;
 @property (nonatomic) BOOL sliding;
+@property (nonatomic, strong) UIVisualEffectView *lens;
+@property (nonatomic, strong) UIImageView *lensGlyph;
 @end
 
 static void syncBar(UIView *stockBar);
@@ -184,11 +186,84 @@ static void forwardTap(UIView *item) {
 
 @implementation SGRSystemTabBar
 
+// v30: a real, non-interactive magnifying glass over the selected tab.
+// UIKit still owns the actual tab buttons and navigation. The enlarged
+// symbol is drawn separately to avoid altering Spotify's gesture targets.
+- (void)moveLensToIndex:(NSUInteger)index x:(CGFloat)x animated:(BOOL)animated {
+    NSUInteger count = MIN(self.items.count, self.sources.count);
+    CGFloat width = CGRectGetWidth(self.bounds);
+    if (!count || index >= count || width < 60) {
+        self.lens.hidden = YES;
+        return;
+    }
+    if (!self.lens) {
+        UIVisualEffectView *lens = [[UIVisualEffectView alloc]
+            initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark]];
+        lens.userInteractionEnabled = NO;
+        lens.accessibilityElementsHidden = YES;
+        lens.layer.cornerRadius = 24;
+        lens.layer.cornerCurve = kCACornerCurveContinuous;
+        lens.layer.masksToBounds = YES;
+        lens.layer.borderWidth = 1;
+        lens.frame = CGRectMake(0, 2, 48, 48);
+
+        UIView *glow = [[UIView alloc] initWithFrame:lens.bounds];
+        glow.userInteractionEnabled = NO;
+        glow.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [lens.contentView addSubview:glow];
+
+        UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(9, 9, 30, 30)];
+        icon.contentMode = UIViewContentModeScaleAspectFit;
+        icon.tintColor = UIColor.whiteColor;
+        icon.userInteractionEnabled = NO;
+        [lens.contentView addSubview:icon];
+
+        self.lens = lens;
+        self.lensGlyph = icon;
+        [self addSubview:lens];
+    }
+    UIVisualEffectView *lens = self.lens;
+    lens.hidden = NO;
+    [self bringSubviewToFront:lens];
+    UIColor *accent = SGRAccent();
+    lens.layer.borderColor = [accent colorWithAlphaComponent:0.65].CGColor;
+    UIView *glow = lens.contentView.subviews.firstObject;
+    glow.backgroundColor = [accent colorWithAlphaComponent:0.18];
+
+    // If the system requests less transparency, keep a clear solid fallback.
+    BOOL solid = SGRReduceTransparency();
+    if (solid && lens.effect) lens.effect = nil;
+    else if (!solid && !lens.effect)
+        lens.effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark];
+    lens.backgroundColor = solid ? [UIColor colorWithWhite:0.22 alpha:1] : UIColor.clearColor;
+
+    UITabBarItem *item = self.items[index];
+    UIImage *art = item.selectedImage ?: item.image;
+    self.lensGlyph.image = [art imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+
+    CGFloat centerX = fmax(24.0, fmin(x, width - 24.0));
+    CGRect frame = CGRectMake(centerX - 24.0, 2.0, 48.0, 48.0);
+    if (CGRectEqualToRect(lens.frame, frame)) return;
+    if (animated && !SGRReduceMotion()) {
+        [UIView animateWithDuration:0.20 delay:0
+            options:UIViewAnimationOptionBeginFromCurrentState |
+                    UIViewAnimationOptionAllowUserInteraction |
+                    UIViewAnimationOptionCurveEaseOut
+            animations:^{ lens.frame = frame; } completion:nil];
+    } else {
+        [lens.layer removeAllAnimations];
+        lens.frame = frame;
+    }
+}
+
 - (void)tabBar:(UITabBar *)tabBar didSelectItem:(UITabBarItem *)item {
     // A drag previews different tabs but must only navigate once on release.
     if (self.sliding) return;
     NSUInteger index = [self.items indexOfObject:item];
     if (index == NSNotFound || index >= self.sources.count) return;
+    [self moveLensToIndex:index
+                      x:((CGFloat)index + 0.5) * self.bounds.size.width / self.items.count
+               animated:YES];
     // Home tapped while on Home pops Spotify's stack, which would take Mod Settings straight off it.
     if (!self.holding) forwardTap(self.sources[index]);
     // Spotify repaints its labels a moment later; a tap it did not take snaps the selection back.
@@ -204,6 +279,9 @@ static void forwardTap(UIView *item) {
     __block UITabBarItem *nearest = nil;
     __block CGFloat best = CGFLOAT_MAX;
     SGForEachView(self, ^(UIView *v) {
+        // The decorative lens repeats the selected item image. Ignore it when
+        // resolving which *real* item was long-pressed.
+        if (self.lens && (v == self.lens || [v isDescendantOfView:self.lens])) return;
         BOOL label = [v isKindOfClass:UILabel.class], glyph = [v isKindOfClass:UIImageView.class];
         if ((!label && !glyph) || v.bounds.size.width < 1) return;
         CGFloat distance = fabs([v convertPoint:CGPointMake(CGRectGetMidX(v.bounds), 0) toView:self].x - point.x);
@@ -240,6 +318,10 @@ static void forwardTap(UIView *item) {
         if (index != NSNotFound) {
             UITabBarItem *target = self.items[index];
             if (self.selectedItem != target) self.selectedItem = target;
+            CGFloat slotX = ((CGFloat)index + 0.5) * self.bounds.size.width / self.items.count;
+            CGFloat fingerX = [slide locationInView:self].x;
+            [self moveLensToIndex:index x:state == UIGestureRecognizerStateEnded ? slotX : fingerX
+                        animated:state == UIGestureRecognizerStateEnded];
             if (state == UIGestureRecognizerStateEnded) {
                 self.sliding = NO;
                 // Programmatic selection doesn't navigate Spotify. Forward
@@ -466,6 +548,13 @@ static void syncBar(UIView *stockBar) {
     // During a swipe the system selection bubble follows the finger. Spotify
     // only owns the selection again after the drag has finished.
     if (selected && !bar.sliding && bar.selectedItem != selected) bar.selectedItem = selected;
+    if (!bar.sliding && bar.selectedItem) {
+        NSUInteger lensIndex = [bar.items indexOfObject:bar.selectedItem];
+        if (lensIndex != NSNotFound)
+            [bar moveLensToIndex:lensIndex
+                             x:((CGFloat)lensIndex + 0.5) * bar.bounds.size.width / bar.items.count
+                      animated:NO];
+    }
     // An icon view Spotify has not built yet is looked for again shortly, not on the next touch.
     static NSUInteger retries;
     if (missing && retries++ < 40) {
