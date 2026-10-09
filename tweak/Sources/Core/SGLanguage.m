@@ -193,7 +193,10 @@ NSString *SGT(NSString *english) {
             @"sources": @"lähdettä",
             @"Found lyrics": @"Sanoitukset löytyivät",
             @"The redesigned look will be used when Spotify restarts.": @"Uudistettu ulkoasu otetaan käyttöön Spotifyn käynnistyessä uudelleen.",
-            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valittu Spotify-tyylinen teema otetaan käyttöön Spotifyn käynnistyessä uudelleen."
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valittu Spotify-tyylinen teema otetaan käyttöön Spotifyn käynnistyessä uudelleen.",
+            @"Lyrics preview": @"Sanoitusten esikatselu",
+            @"Inline lyrics (experimental)": @"Sanoitukset soittimessa (kokeellinen)",
+            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Näytä kaksi sanoitusriviä kansikuvan ja kappaleen nimen välissä. Etsii sanoituksia valituista lähteistä, jos Spotifysta ei löydy niitä."
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -331,7 +334,10 @@ NSString *SGT(NSString *english) {
             @"sources": @"källor",
             @"Found lyrics": @"Låttext hittades",
             @"The redesigned look will be used when Spotify restarts.": @"Den nya designen används när Spotify startas om.",
-            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valt Spotify-tema används när Spotify startas om."
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valt Spotify-tema används när Spotify startas om.",
+            @"Lyrics preview": @"Förhandsvisning av låttext",
+            @"Inline lyrics (experimental)": @"Låttext i spelaren (experimentell)",
+            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Visa två textrader mellan omslaget och låttiteln. Använder valda källor när Spotify saknar låttext."
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -469,7 +475,10 @@ NSString *SGT(NSString *english) {
             @"sources": @"Quellen",
             @"Found lyrics": @"Songtext gefunden",
             @"The redesigned look will be used when Spotify restarts.": @"Das neue Design wird nach einem Neustart von Spotify aktiviert.",
-            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Das gewählte Spotify-Design wird nach einem Neustart aktiviert."
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Das gewählte Spotify-Design wird nach einem Neustart aktiviert.",
+            @"Lyrics preview": @"Songtext-Vorschau",
+            @"Inline lyrics (experimental)": @"Songtext im Player (experimentell)",
+            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Zeigt zwei Songtextzeilen zwischen Cover und Titel. Verwendet gewählte Quellen, falls Spotify keinen Text hat."
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -607,7 +616,10 @@ NSString *SGT(NSString *english) {
             @"sources": @"fuentes",
             @"Found lyrics": @"Letras encontradas",
             @"The redesigned look will be used when Spotify restarts.": @"El nuevo diseño se aplicará al reiniciar Spotify.",
-            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"El tema de Spotify elegido se aplicará al reiniciar."
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"El tema de Spotify elegido se aplicará al reiniciar.",
+            @"Lyrics preview": @"Vista previa de letras",
+            @"Inline lyrics (experimental)": @"Letras en el reproductor (experimental)",
+            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Muestra dos líneas entre la portada y el título. Usa las fuentes elegidas cuando Spotify no tiene letras."
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -745,7 +757,10 @@ NSString *SGT(NSString *english) {
             @"sources": @"sources",
             @"Found lyrics": @"Paroles trouvées",
             @"The redesigned look will be used when Spotify restarts.": @"La nouvelle interface sera activée après le redémarrage de Spotify.",
-            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Le thème Spotify choisi sera activé après le redémarrage."
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Le thème Spotify choisi sera activé après le redémarrage.",
+            @"Lyrics preview": @"Aperçu des paroles",
+            @"Inline lyrics (experimental)": @"Paroles dans le lecteur (expérimental)",
+            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Affiche deux lignes entre la pochette et le titre. Utilise les sources choisies si Spotify n'a pas de paroles."
         }
         };
     });
