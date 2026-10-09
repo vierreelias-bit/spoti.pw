@@ -301,6 +301,7 @@ static void setOpen(BOOL open, BOOL animated) {
         return;
     }
     sg_open = open;
+    if (open) SGRInlineLyricsHide(host); // no overlap with full-size lyrics
     SGRPlayerLyricsChanged();
 
     SGRPlayerLyricsOverlay *overlay = overlayIn(host);
