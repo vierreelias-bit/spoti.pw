@@ -38,4 +38,6 @@ void SGRAlbumSetSpotifyColor(UIView *view, UIColor *color);
 
 // EliSpot v30 album controls.
 #define SGRKeyHideAlbumTrackArtists @"spotifyglass.redesign.album.hideTrackArtists"
+// Original redesigned album view hides post-track sections by default.
+#define SGRKeyShowAlbumExtraSections @"spotifyglass.redesign.album.showExtraSections"
 UIViewController *SGRAlbumSettingsPage(void);
