@@ -8,6 +8,75 @@
 #import "Core/SGCore.h"
 #import "SGRAccent.h"
 
+// Keep weak references only to Spotify surfaces we recolour. On a song
+// change, replay the *original* #121212 paint through our existing hook.
+// Without this, a previously tinted layer stays on the previous song's
+// colour until Spotify happens to redraw it.
+static NSObject *trackingLock(void) {
+    static NSObject *lock;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ lock = [NSObject new]; });
+    return lock;
+}
+
+static NSMapTable<CALayer *, id> *surfaceSeeds(void) {
+    static NSMapTable<CALayer *, id> *seeds;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ seeds = [NSMapTable weakToStrongObjectsMapTable]; });
+    return seeds;
+}
+
+static NSMapTable<CAGradientLayer *, NSArray *> *gradientSeeds(void) {
+    static NSMapTable<CAGradientLayer *, NSArray *> *seeds;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ seeds = [NSMapTable weakToStrongObjectsMapTable]; });
+    return seeds;
+}
+
+static void rememberSurface(CALayer *layer, CGColorRef original) {
+    if (SGRSongColorRGB() < 0) return;
+    @synchronized (trackingLock()) {
+        [surfaceSeeds() setObject:(__bridge id)original forKey:layer];
+    }
+}
+
+static void rememberGradient(CAGradientLayer *layer, NSArray *original, BOOL tinted) {
+    if (SGRSongColorRGB() < 0) return;
+    @synchronized (trackingLock()) {
+        if (tinted) [gradientSeeds() setObject:original forKey:layer];
+        else [gradientSeeds() removeObjectForKey:layer];
+    }
+}
+
+static void refreshSongSurfaces(void) {
+    NSArray<CALayer *> *layers;
+    NSMutableArray *originals;
+    NSArray<CAGradientLayer *> *gradients;
+    NSMutableArray *gradientColours;
+    @synchronized (trackingLock()) {
+        layers = surfaceSeeds().keyEnumerator.allObjects;
+        originals = [NSMutableArray arrayWithCapacity:layers.count];
+        for (CALayer *layer in layers) {
+            id original = [surfaceSeeds() objectForKey:layer];
+            [originals addObject:original ?: NSNull.null];
+        }
+        gradients = gradientSeeds().keyEnumerator.allObjects;
+        gradientColours = [NSMutableArray arrayWithCapacity:gradients.count];
+        for (CAGradientLayer *gradient in gradients) {
+            [gradientColours addObject:[gradientSeeds() objectForKey:gradient] ?: NSNull.null];
+        }
+    }
+    // Calls the hooks below again, but does not recurse into this notification.
+    for (NSUInteger i = 0; i < layers.count; i++) {
+        if (originals[i] != NSNull.null)
+            layers[i].backgroundColor = (__bridge CGColorRef)originals[i];
+    }
+    for (NSUInteger i = 0; i < gradients.count; i++) {
+        if (gradientColours[i] != NSNull.null)
+            gradients[i].colors = gradientColours[i];
+    }
+}
+
 // Neutral and darker than #1A1A1A, but not already black.
 static BOOL isBaseGrey(CGColorRef color) {
     if (!color || CFGetTypeID(color) != CGColorGetTypeID()) return NO;
@@ -49,9 +118,13 @@ static CGColorRef copyBlack(CGColorRef color) {
 %hook CALayer
 - (void)setBackgroundColor:(CGColorRef)color {
     if (!isBaseGrey(color)) {
+        if (SGRSongColorRGB() >= 0) {
+            @synchronized (trackingLock()) { [surfaceSeeds() removeObjectForKey:(CALayer *)self]; }
+        }
         %orig;
         return;
     }
+    rememberSurface((CALayer *)self, color);
     CGColorRef black = copyBlack(color);
     %orig(black);
     CGColorRelease(black);
@@ -61,16 +134,19 @@ static CGColorRef copyBlack(CGColorRef color) {
 %hook CAGradientLayer
 - (void)setColors:(NSArray *)colors {
     NSMutableArray *mapped = [[NSMutableArray alloc] initWithCapacity:colors.count];
+    BOOL hasBaseGrey = NO;
     for (id entry in colors) {
         CGColorRef color = (__bridge CGColorRef)entry;
         if (!isBaseGrey(color)) {
             [mapped addObject:entry];
             continue;
         }
+        hasBaseGrey = YES;
         CGColorRef black = copyBlack(color);
         [mapped addObject:(__bridge id)black];
         CGColorRelease(black);
     }
+    rememberGradient((CAGradientLayer *)self, colors, hasBaseGrey);
     %orig(colors ? mapped : nil);
 }
 %end
@@ -106,4 +182,10 @@ static CGColorRef copyBlack(CGColorRef color) {
 %ctor {
     if (!SGRedesignedUI()) return;
     %init;
+    if (SGFlag(SGRKeySongTheme, NO)) {
+        [NSNotificationCenter.defaultCenter addObserverForName:@"elispot.songAccentChanged"
+            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+                refreshSongSurfaces();
+            }];
+    }
 }
