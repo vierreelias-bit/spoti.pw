@@ -13,6 +13,7 @@
 static char kInlinePreviewKey, kInlineTitleKey;
 
 @interface SGRInlineLyricsView : UIView
+@property (nonatomic) BOOL layoutEligible;
 - (void)refresh;
 @end
 
@@ -81,7 +82,7 @@ static char kInlinePreviewKey, kInlineTitleKey;
 }
 
 - (void)refresh {
-    if (!SGFlag(SGRKeyInlineLyrics, NO) || SGRPlayerLyricsOpen() || !self.window ||
+    if (!self.layoutEligible || !SGFlag(SGRKeyInlineLyrics, NO) || SGRPlayerLyricsOpen() || !self.window ||
         self.bounds.size.height < 68 || SGRPlayerIsTransitioning()) {
         self.hidden = YES;
         return;
@@ -176,6 +177,7 @@ void SGRInlineLyricsRelayout(UIView *host) {
     UIView *title = SGRFindByIdentifier(host, @"now-playing-title-label", &kInlineTitleKey);
     CGRect cover = SGRPlayerCoverFrameIn(host);
     if (!title || CGRectIsNull(cover) || !title.window || SGRPlayerLyricsOpen()) {
+        preview.layoutEligible = NO;
         preview.hidden = YES;
         return;
     }
@@ -184,6 +186,7 @@ void SGRInlineLyricsRelayout(UIView *host) {
     CGFloat end = CGRectGetMinY(titleFrame) - 12;
     CGFloat available = end - start;
     if (available < 86 || host.bounds.size.width < 200) {
+        preview.layoutEligible = NO;
         preview.hidden = YES;
         return;
     }
@@ -191,10 +194,12 @@ void SGRInlineLyricsRelayout(UIView *host) {
     CGRect area = CGRectMake(30, start + (available - height) / 2.0,
                              host.bounds.size.width - 60, height);
     if (!CGRectEqualToRect(preview.frame, area)) preview.frame = area;
+    preview.layoutEligible = YES;
     [preview refresh];
 }
 
 void SGRInlineLyricsHide(UIView *host) {
     SGRInlineLyricsView *preview = objc_getAssociatedObject(host, &kInlinePreviewKey);
+    preview.layoutEligible = NO;
     preview.hidden = YES;
 }
