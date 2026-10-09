@@ -40,6 +40,10 @@ static void unpack(uint32_t rgb, CGFloat *r, CGFloat *g, CGFloat *b) {
     *b = (rgb & 0xFF) / 255.0;
 }
 
+NSInteger SGRSongColorRGB(void) {
+    return sg_songTheme ? (NSInteger)atomic_load_explicit(&sg_songRGB, memory_order_relaxed) : -1;
+}
+
 UIColor *SGRAccentColor(void) {
     NSInteger rgb = chosen();
     if (rgb < 0) return nil;
