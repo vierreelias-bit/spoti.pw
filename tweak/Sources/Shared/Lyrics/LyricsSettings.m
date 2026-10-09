@@ -13,7 +13,7 @@ SGModSection *SGLyricsSourcesSection(BOOL namingSource) {
         NSUInteger count = SGLyricsOrder().count;
         if (!count) return SGT(@"Off");
         if (count == 1) return SGT(@"1 source");
-        return [NSString stringWithFormat:SGT(@"%lu sources"), (unsigned long)count];
+        return [NSString stringWithFormat:@"%lu %@", (unsigned long)count, SGT(@"sources")];
     };
     SGModRow *allTracks = SGOptionRow(@"Lyrics where Spotify has none",
         @"Search your selected sources for missing lyrics.",
@@ -47,7 +47,7 @@ SGModSection *SGLyricsSourcesSection(BOOL namingSource) {
         // Explicit diagnostic: query only the sources the user enabled.
         SGLyricsFetch(track, ^(SGLyricsResult *result) {
             NSString *detail = result.karaokeLines.count || result.texts.count
-                ? [NSString stringWithFormat:SGT(@"Found lyrics from %@."), SGLyricsProviderFor(result.provider).name ?: result.provider ?: @"source"]
+                ? [NSString stringWithFormat:@"%@: %@", SGT(@"Found lyrics"), SGLyricsProviderFor(result.provider).name ?: result.provider ?: @"source"]
                 : SGT(@"No lyrics found for this track from the selected sources.");
             UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(@"Lyrics source test")
                 message:detail preferredStyle:UIAlertControllerStyleAlert];
