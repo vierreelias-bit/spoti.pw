@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev5`  
+**Development package:** `30.0.0~dev6`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -50,6 +50,17 @@ requirements or used with separately obtained permission. No copyrighted
       redesigned look hid artist video shelves unconditionally.
 - [x] Add these new settings to Finnish, Swedish, German, Spanish and French
       UI dictionaries (English fallback).
+- [x] Give the redesigned mini-player a translucent theme-coloured
+      glass film and subtle outline instead of an indistinguishable black card.
+- [x] Inset and round the actual UIKit tab bar into a capsule while keeping
+      Spotify's existing tab hit targets and layout-safe-area measurements.
+- [x] Give themed Home, Search, Library and Spotify settings surfaces subtle
+      dark red/blue/violet undertones, while Spotify default and AMOLED
+      black themes remain intentionally dark.
+- [x] Draw a responsive, theme-tinted gradient behind EliSpot's own settings
+      pages, without any image files or extra artwork assets.
+- [ ] Validate the mini-player contrast, capsule bounds and theme backgrounds
+      visually on an actual device. Source edits alone are not a build test.
 - [x] Fix the Search browse cards' gradient layer stacking so the intended
       colored categories are no longer placed behind an opaque black card.
 - [x] Add optional slowly animated **still** artwork to album hero and player
