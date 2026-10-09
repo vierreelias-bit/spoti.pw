@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev3`  
+**Development package:** `30.0.0~dev4`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -15,6 +15,18 @@ requirements or used with separately obtained permission. No copyrighted
 
 - [x] Start a separate `elispot-v30` branch with v30 development metadata.
 - [x] Offer a red accent preset in both Legacy and Redesign appearance menus.
+- [x] Offer a one-tap **Apple Music-inspired look** preset on supported
+      iOS versions. It combines EliSpot's own redesign, red accents, animated
+      still artwork and moving field with a restart confirmation.
+- [x] Replace the Ubuntu Audio effects unavailable screen with real
+      controls wired to the existing speed/pitch audio unit when available,
+      plus the existing control haptics and Music Haptics settings.
+- [ ] Implement and verify JamesDSP equalizer, bass enhancement, reverb,
+      convolver and other actual DSP effects in an Ubuntu build. These are
+      **not available in dev4**; the Mac toolchain remains necessary.
+- [ ] Support genuine motion-video album artwork with appropriately
+      licensed assets; currently only subtle animations of static covers.
+
 - [x] Expose an Albums page in the redesigned settings.
 - [x] Add a switch to hide the artist subtitle under redesigned album tracks.
 - [x] Add a **Show extra album sections** switch to restore the
