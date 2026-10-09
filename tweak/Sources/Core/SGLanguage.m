@@ -203,7 +203,19 @@ NSString *SGT(NSString *english) {
             @"Choose an authorized video in Files for the song playing now.": @"Valitse Tiedostot-sovelluksesta video, jota saat käyttää nyt soivan biisin kansikuvana.",
             @"Animated artwork": @"Animoitu kansikuva",
             @"Animated cover added for the selected song.": @"Animoitu kansi lisättiin kappaleelle.",
-            @"Play a Spotify song first, then import its animated cover.": @"Toista ensin Spotify-kappale ja tuo sitten sen animoitu kansi."
+            @"Play a Spotify song first, then import its animated cover.": @"Toista ensin Spotify-kappale ja tuo sitten sen animoitu kansi.",
+            @"Apple Music album": @"Apple Music -albumi",
+            @"Find album automatically": @"Etsi albumi automaattisesti",
+            @"Optional: send the playing artist and album name to Apple's public catalog search.": @"Valinnainen: lähetä artistin ja albumin nimi Applen julkiseen albumihakuun.",
+            @"Open matching album": @"Avaa vastaava albumi",
+            @"Find and open the album in Apple Music. Video artwork is not downloaded.": @"Etsi albumi ja avaa se Apple Musicissa. Videokansia ei ladata.",
+            @"Apple's public catalog lookup provides album metadata and a link, not licensed motion-video files. To show a moving cover inside Spotify, import a video that you have permission to use.": @"Applen julkinen albumihaku antaa albumin tiedot ja linkin, ei videokansia. Voit tuoda Spotifyyn itse videon, jota saat käyttää.",
+            @"Play a song": @"Toista kappale",
+            @"Searching Apple Music": @"Etsitään Apple Musicista",
+            @"Album found": @"Albumi löytyi",
+            @"No album match": @"Vastaavaa albumia ei löytynyt",
+            @"Not searched": @"Ei vielä etsitty",
+            @"Looking up this album. Return here shortly to open its Apple Music page. This does not import animated video.": @"Albumia etsitään. Palaa hetken päästä tänne avataksesi sen Apple Musicissa. Tämä ei tuo animoitua videota."
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -346,7 +358,15 @@ NSString *SGT(NSString *english) {
             @"Matches song artwork": @"Färg från omslaget",
             @"Animated video artwork": @"Animerade videoomslag",
             @"Import animated cover": @"Importera animerat omslag",
-            @"Animated artwork": @"Animerat omslag"
+            @"Animated artwork": @"Animerat omslag",
+            @"Apple Music album": @"Apple Music-album",
+            @"Find album automatically": @"Sök album automatiskt",
+            @"Open matching album": @"Öppna matchande album",
+            @"Play a song": @"Spela en låt",
+            @"Searching Apple Music": @"Söker på Apple Music",
+            @"Album found": @"Album hittat",
+            @"No album match": @"Inget matchande album",
+            @"Not searched": @"Inte sökt"
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -489,7 +509,15 @@ NSString *SGT(NSString *english) {
             @"Matches song artwork": @"Farbe aus dem Cover",
             @"Animated video artwork": @"Animierte Videocover",
             @"Import animated cover": @"Animiertes Cover importieren",
-            @"Animated artwork": @"Animiertes Cover"
+            @"Animated artwork": @"Animiertes Cover",
+            @"Apple Music album": @"Apple-Music-Album",
+            @"Find album automatically": @"Album automatisch suchen",
+            @"Open matching album": @"Passendes Album öffnen",
+            @"Play a song": @"Titel abspielen",
+            @"Searching Apple Music": @"Apple Music wird durchsucht",
+            @"Album found": @"Album gefunden",
+            @"No album match": @"Kein passendes Album",
+            @"Not searched": @"Noch nicht gesucht"
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -632,7 +660,15 @@ NSString *SGT(NSString *english) {
             @"Matches song artwork": @"Color de la portada",
             @"Animated video artwork": @"Portadas de vídeo animadas",
             @"Import animated cover": @"Importar portada animada",
-            @"Animated artwork": @"Portada animada"
+            @"Animated artwork": @"Portada animada",
+            @"Apple Music album": @"Álbum de Apple Music",
+            @"Find album automatically": @"Buscar álbum automáticamente",
+            @"Open matching album": @"Abrir álbum coincidente",
+            @"Play a song": @"Reproduce una canción",
+            @"Searching Apple Music": @"Buscando en Apple Music",
+            @"Album found": @"Álbum encontrado",
+            @"No album match": @"No hay álbum coincidente",
+            @"Not searched": @"No buscado"
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -775,7 +811,15 @@ NSString *SGT(NSString *english) {
             @"Matches song artwork": @"Couleur de la pochette",
             @"Animated video artwork": @"Pochettes vidéo animées",
             @"Import animated cover": @"Importer une pochette animée",
-            @"Animated artwork": @"Pochette animée"
+            @"Animated artwork": @"Pochette animée",
+            @"Apple Music album": @"Album Apple Music",
+            @"Find album automatically": @"Chercher l’album automatiquement",
+            @"Open matching album": @"Ouvrir l’album correspondant",
+            @"Play a song": @"Lancer un morceau",
+            @"Searching Apple Music": @"Recherche sur Apple Music",
+            @"Album found": @"Album trouvé",
+            @"No album match": @"Aucun album correspondant",
+            @"Not searched": @"Pas encore recherché"
         }
         };
     });
