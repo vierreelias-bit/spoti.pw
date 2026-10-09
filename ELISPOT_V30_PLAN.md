@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev11`  
+**Development package:** `30.0.0~dev12`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -10,6 +10,34 @@ which does not grant redistribution/derivative-work permission.
 Any similar features must be independently implemented from functional
 requirements or used with separately obtained permission. No copyrighted
 0.50.0 source has been transplanted into this branch.
+
+## v30 dev12 changes
+
+- [x] **Removed the experimental inline lyrics preview** below the artwork,
+      including its file, references, setting and translated labels. The
+      regular full lyrics experience remains untouched.
+- [x] **Removed the enlarged visual tab slider / lens entirely.** The
+      existing horizontal pan gesture and nearest-tab selection on release
+      remain; ordinary tab icons and a glass bar remain visible.
+- [x] Added **Colours follow song** to Appearance > Theme. The current
+      artwork's dominant colour is processed by the existing palette engine
+      and used as a bright accent for controls, with dark matching background
+      colours on surfaces as they repaint. Now Playing and the tab bar
+      re-tint when the song changes; the player artwork field already
+      crossfades between album colours.
+- [x] Added **real looping animated cover video** from the user's
+      own/authorized MP4, MOV or M4V file using the iOS Files picker:
+      Now playing > Animated video artwork > Import animated cover.
+      The chosen file is associated with the current Spotify song ID.
+- [x] Video playback is muted, pauses for a paused song, backgrounding,
+      Low Power Mode or Reduce Motion, and falls back to the usual static
+      cover if no imported video is found.
+- [ ] **No Apple Music animated-video catalog integration**: obtaining
+      protected Apple Music motion artwork is not supported or promised;
+      the user provides an authorized animation file.
+- [ ] Test these modifications with Ubuntu `make package`, on-device
+      tab gestures, changing tracks, video import, and memory use.
+      The GitHub changes have not yet been build/device-verified.
 
 ## Implemented in v30 source (not yet compiled/device-tested)
 
@@ -41,21 +69,6 @@ requirements or used with separately obtained permission. No copyrighted
 - [ ] Support genuine motion-video album artwork with appropriately
       licensed assets; currently only subtle animations of static covers.
 
-- [x] Add an **experimental inline lyrics preview** in the otherwise
-      unused gap between the full-size player artwork and song title.
-      Two lines appear in the redesigned lyrics style: current line bright,
-      upcoming line secondary. Timing follows the current playback position
-      where the provider supplies synced lyrics.
-- [x] Reuse cached Spotify lyrics and, when unavailable, query only the
-      user's enabled alternate lyric providers once per track. Do not include
-      any lyrics in the app or invent lines. The recovered result is also
-      shared with the existing full lyrics engine.
-- [x] Hide the compact preview when full-screen lyrics open or the available
-      layout gap is too small to keep the player controls readable.
-- [x] Add an opt-in **Inline lyrics (experimental)** control to the
-      redesigned Now playing settings, disabled by default.
-- [ ] Test the layout, timed highlights and alternate provider results on
-      a supported iPhone; no successful Ubuntu build has yet been verified.
 - [x] Expose an Albums page in the redesigned settings.
 - [x] Add a switch to hide the artist subtitle under redesigned album tracks.
 - [x] Add a **Show extra album sections** switch to restore the
