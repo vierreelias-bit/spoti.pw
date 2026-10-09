@@ -5,6 +5,7 @@
 #import "SGRTokens.h"
 #import "SGRArtworkMotion.h"
 #import <QuartzCore/QuartzCore.h>
+#import <math.h>
 
 static NSString *const kCoverMotionKey = @"elispot.coverMotion";
 
