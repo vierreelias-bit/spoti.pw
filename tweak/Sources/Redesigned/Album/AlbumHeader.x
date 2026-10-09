@@ -157,6 +157,12 @@ static void watch(UIView *view, const void *key, void (^laidOut)(UIView *view)) 
     [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    // Stop the cover effect when the page leaves the window.
+    SGRUpdateArtworkMotion(_picture);
+}
+
 - (void)sgr_fieldColorDidChange {
     if (self.superview) self.fieldColor = SGRAlbumFieldColor(self);
 }
@@ -184,6 +190,7 @@ static void watch(UIView *view, const void *key, void (^laidOut)(UIView *view)) 
     CGFloat fade = round(bounds.size.height * kDissolve);
     _dissolve.frame = CGRectMake(0, bounds.size.height - fade, bounds.size.width, fade);
     [CATransaction commit];
+    SGRUpdateArtworkMotion(_picture);
 }
 
 - (void)followCover:(UIImageView *)source {
@@ -202,6 +209,7 @@ static void watch(UIView *view, const void *key, void (^laidOut)(UIView *view)) 
     UIImage *image = source.image;
     if (!image || source.bounds.size.width < kMinCover || _picture.image == image) return;
     _picture.image = image;
+    SGRUpdateArtworkMotion(_picture);
     // The page's field takes its colour from the same picture.
     SGRAlbumSetArtwork(self, image);
     static BOOL logged;
