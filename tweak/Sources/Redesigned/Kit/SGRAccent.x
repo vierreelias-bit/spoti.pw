@@ -8,18 +8,29 @@
 #import "Core/SGCore.h"
 #import "SGRAccent.h"
 #import "Settings/SGPageStyle.h"
+#import "SGRBridges.h"
+#import "SGRPalette.h"
+#import <stdatomic.h>
 
 // The greens the app is known to build from literals: the token, and the older brand green the
 // upsell backend still names.
 static const uint32_t kGreens[] = {0x1ED760, 0x1DB954};
 
 static NSInteger sg_accent = -1;   // 0xRRGGBB once chosen, read at launch
+static BOOL sg_songTheme;
+static atomic_uint sg_songRGB;        // read by CALayer hooks on background queues
+static NSUInteger sg_songGeneration; // rejects palette work for a previous song
+
+// A separate signal lets the tab bar and existing controls redraw when the
+// currently playing artwork changes; no Spotify account/media APIs involved.
+static NSString *const kSongAccentChanged = @"elispot.songAccentChanged";
 
 // The redesign's own green until another is picked; Spotify's is a pick of its own, stored as -1.
 static const NSInteger kDefaultAccent = 0x37F200;
 
 static NSInteger chosen(void) {
-    NSInteger rgb = SGInt(SGRKeyAccent, kDefaultAccent);
+    NSInteger rgb = sg_songTheme ? (NSInteger)atomic_load_explicit(&sg_songRGB, memory_order_relaxed)
+                                   : SGInt(SGRKeyAccent, kDefaultAccent);
     return rgb >= 0 && rgb <= 0xFFFFFF ? rgb : -1;
 }
 
@@ -39,6 +50,7 @@ UIColor *SGRAccentColor(void) {
 
 NSString *SGRAccentLabel(void) {
     NSInteger rgb = chosen();
+    if (sg_songTheme || SGFlag(SGRKeySongTheme, NO)) return @"Matches song artwork";
     return rgb < 0 ? @"Spotify green" : [NSString stringWithFormat:@"#%06lX", (long)rgb];
 }
 
@@ -78,7 +90,8 @@ static BOOL swap(CGFloat *r, CGFloat *g, CGFloat *b) {
         unpack(kGreens[i], &gr, &gg, &gb);
         if (fabs(*r - gr) > 0.01 || fabs(*g - gg) > 0.01 || fabs(*b - gb) > 0.01) continue;
         CGFloat ar, ag, ab;
-        unpack((uint32_t)sg_accent, &ar, &ag, &ab);
+        unpack(sg_songTheme ? atomic_load_explicit(&sg_songRGB, memory_order_relaxed)
+                            : (uint32_t)sg_accent, &ar, &ag, &ab);
         CGFloat factor = MAX(gr, MAX(gg, gb)) / (0xD7 / 255.0);
         *r = MIN(1, ar * factor);
         *g = MIN(1, ag * factor);
@@ -168,8 +181,45 @@ static id swappedValue(id value) {
 }
 %end
 
+// Keep the accent lively while each image's dominant colour is analysed on a
+// serial background queue by the existing SGRPalette engine. Skip near-grey
+// covers to preserve contrast and keep the last distinct colour.
+static void updateSongAccent(UIImage *image) {
+    if (!image || !sg_songTheme) return;
+    NSUInteger generation = ++sg_songGeneration;
+    SGRPaletteRequest request = {CGSizeZero, NO, YES, YES};
+    [SGRPalette paletteForImage:image request:request completion:^(SGRPalette *palette) {
+        if (!palette || generation != sg_songGeneration) return;
+        UIColor *source = palette.flowColors.lastObject ?: palette.edgeColor;
+        CGFloat h = 0, s = 0, v = 0, a = 0;
+        if (![source getHue:&h saturation:&s brightness:&v alpha:&a]) return;
+        if (s < 0.12) return;
+        // Bright enough for a clear accent over Spotify's dark player.
+        UIColor *accent = [UIColor colorWithHue:h saturation:MIN(0.91, MAX(0.55, s))
+                                        brightness:0.94 alpha:1];
+        CGFloat red = 0, green = 0, blue = 0;
+        [accent getRed:&red green:&green blue:&blue alpha:&a];
+        uint32_t rgb = ((uint32_t)lround(red * 255) << 16) |
+                       ((uint32_t)lround(green * 255) << 8) |
+                       (uint32_t)lround(blue * 255);
+        uint32_t previous = atomic_exchange_explicit(&sg_songRGB, rgb, memory_order_relaxed);
+        if (rgb != previous)
+            [NSNotificationCenter.defaultCenter postNotificationName:kSongAccentChanged object:nil];
+    }];
+}
+
 %ctor {
     if (!SGRedesignedUI()) return;
+    sg_songTheme = SGFlag(SGRKeySongTheme, NO);
+    atomic_init(&sg_songRGB, 0x1ED760);
     sg_accent = chosen();
-    if (sg_accent >= 0) %init;
+    if (sg_songTheme || sg_accent >= 0) %init;
+    if (sg_songTheme) {
+        [NSNotificationCenter.defaultCenter addObserverForName:SGRNowPlayingArtworkDidChangeNotification
+            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+                UIImage *image = note.userInfo[@"image"];
+                if ([image isKindOfClass:UIImage.class]) updateSongAccent(image);
+            }];
+        updateSongAccent(SGRNowPlayingArtwork(NULL, NULL));
+    }
 }
