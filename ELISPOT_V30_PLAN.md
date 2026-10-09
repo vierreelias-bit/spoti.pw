@@ -17,6 +17,14 @@ requirements or used with separately obtained permission. No copyrighted
 - [x] Offer a red accent preset in both Legacy and Redesign appearance menus.
 - [x] Expose an Albums page in the redesigned settings.
 - [x] Add a switch to hide the artist subtitle under redesigned album tracks.
+- [x] Add a **Show extra album sections** switch to restore the
+      Spotify-provided sections below the track list. The earlier redesign
+      omitted these unconditionally.
+- [x] Add an **Artists** page with **Hide music videos** control. The old
+      redesigned look hid artist video shelves unconditionally.
+- [x] Add these new settings to Finnish, Swedish, German, Spanish and French
+      UI dictionaries (English fallback).
+
 - [x] Add an optional, manually opened **What's new** page; no automatic prompts.
 - [x] Add v30-only language settings: System default, English, Finnish,
       Swedish, German, Spanish and French; translated common EliSpot settings
