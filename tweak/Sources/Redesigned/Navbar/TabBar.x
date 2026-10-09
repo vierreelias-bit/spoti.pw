@@ -187,9 +187,27 @@ static void forwardTap(UIView *item) {
 
 @implementation SGRSystemTabBar
 
-// v30: a real, non-interactive magnifying glass over the selected tab.
-// UIKit still owns the actual tab buttons and navigation. The enlarged
-// symbol is drawn separately to avoid altering Spotify's gesture targets.
+// Find the top of the real tab caption, including Dynamic Type changes.
+// The magnifying lens must never overlap the caption: it should look like
+// a small glass icon highlight, not a floating button over its label.
+- (CGFloat)captionTopForItem:(UITabBarItem *)item {
+    if (!item.title.length) return CGFLOAT_MAX;
+    __block CGFloat top = CGFLOAT_MAX;
+    SGForEachView(self, ^(UIView *view) {
+        if (self.lens && (view == self.lens || [view isDescendantOfView:self.lens])) return;
+        if (![view isKindOfClass:UILabel.class] || view.hidden || view.alpha < 0.05) return;
+        UILabel *label = (UILabel *)view;
+        if (![label.text isEqualToString:item.title]) return;
+        CGFloat candidate = CGRectGetMinY([view convertRect:view.bounds toView:self]);
+        if (candidate > 12 && candidate < CGRectGetHeight(self.bounds))
+            top = MIN(top, candidate);
+    });
+    return top;
+}
+
+// v30: a real, non-interactive glass magnifier over only the selected icon.
+// The stock tab labels remain completely outside the lens. UIKit owns the
+// actual buttons and all navigation; only a decorative view moves here.
 - (void)moveLensToIndex:(NSUInteger)index x:(CGFloat)x animated:(BOOL)animated {
     NSUInteger count = MIN(self.items.count, self.sources.count);
     CGFloat width = CGRectGetWidth(self.bounds);
@@ -202,18 +220,19 @@ static void forwardTap(UIView *item) {
             initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark]];
         lens.userInteractionEnabled = NO;
         lens.accessibilityElementsHidden = YES;
-        lens.layer.cornerRadius = 24;
+        lens.layer.cornerRadius = 17;
         lens.layer.cornerCurve = kCACornerCurveContinuous;
         lens.layer.masksToBounds = YES;
-        lens.layer.borderWidth = 1;
-        lens.frame = CGRectMake(0, 2, 48, 48);
+        lens.layer.borderWidth = 0.65;
+        lens.frame = CGRectMake(0, 0, 34, 34);
+        lens.alpha = 0.82; // let the underlying glass and tint show through
 
         UIView *glow = [[UIView alloc] initWithFrame:lens.bounds];
         glow.userInteractionEnabled = NO;
         glow.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         [lens.contentView addSubview:glow];
 
-        UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(9, 9, 30, 30)];
+        UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(4, 4, 26, 26)];
         icon.contentMode = UIViewContentModeScaleAspectFit;
         icon.tintColor = UIColor.whiteColor;
         icon.userInteractionEnabled = NO;
@@ -228,8 +247,8 @@ static void forwardTap(UIView *item) {
     lens.hidden = NO;
     [self bringSubviewToFront:lens];
     UIColor *accent = SGRAccent();
-    lens.layer.borderColor = [accent colorWithAlphaComponent:0.65].CGColor;
-    self.lensGlow.backgroundColor = [accent colorWithAlphaComponent:0.18];
+    lens.layer.borderColor = [accent colorWithAlphaComponent:0.36].CGColor;
+    self.lensGlow.backgroundColor = [accent colorWithAlphaComponent:0.10];
 
     // If the system requests less transparency, keep a clear solid fallback.
     BOOL solid = SGRReduceTransparency();
@@ -242,8 +261,22 @@ static void forwardTap(UIView *item) {
     UIImage *art = item.selectedImage ?: item.image;
     self.lensGlyph.image = [art imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 
-    CGFloat centerX = fmax(24.0, fmin(x, width - 24.0));
-    CGRect frame = CGRectMake(centerX - 24.0, 2.0, 48.0, 48.0);
+    // The item title can begin close to the icon (different screen sizes and
+    // Accessibility font sizes). Shrink the lens as needed, leaving at least
+    // 5 pt of clear space above the caption. No text gets magnified/covered.
+    CGFloat captionTop = [self captionTopForItem:item];
+    CGFloat available = captionTop == CGFLOAT_MAX
+        ? 34.0 : MAX(0, captionTop - 5.0);
+    CGFloat diameter = MIN(34.0, available);
+    if (diameter < 22.0) {
+        lens.hidden = YES; // Never obscure the caption on very compact bars.
+        return;
+    }
+    lens.layer.cornerRadius = diameter / 2.0;
+    CGFloat inset = MAX(3.0, (diameter - 26.0) / 2.0);
+    self.lensGlyph.frame = CGRectInset(CGRectMake(0, 0, diameter, diameter), inset, inset);
+    CGFloat centerX = fmax(diameter / 2.0, fmin(x, width - diameter / 2.0));
+    CGRect frame = CGRectMake(centerX - diameter / 2.0, 0.0, diameter, diameter);
     if (CGRectEqualToRect(lens.frame, frame)) return;
     if (animated && !SGRReduceMotion()) {
         [UIView animateWithDuration:0.20 delay:0
