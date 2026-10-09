@@ -173,6 +173,11 @@ static void styleNowPlayingBar(UIViewController *container) {
 %ctor {
     if (!SGRedesignedUI()) return;
     %init;
+    [NSNotificationCenter.defaultCenter addObserverForName:@"elispot.songAccentChanged"
+        object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+            UIVisualEffectView *glass = sg_cardGlass;
+            if (glass.window) styleGlassTint(glass, MIN(kCardRadius, glass.bounds.size.height / 2));
+        }];
     SGRequireClasses(@[
         @"_TtC18NowPlaying_BarImpl36NowPlayingBarContainerViewController",
         @"_TtC18NowPlaying_BarImpl27NowPlayingBarViewController",
