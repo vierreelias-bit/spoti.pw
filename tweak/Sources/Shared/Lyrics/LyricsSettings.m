@@ -1,6 +1,7 @@
 // The Lyrics page's parts; App/Pages.m assembles the page.
 #import "Core/SGCore.h"
 #import "Settings/SGModPage.h"
+#import "Settings/SGPageStyle.h" // SGTopController()
 #import "Lyrics.h"
 #import "Shared/LockScreenLyrics/LockScreenLyrics.h"
 #import "Shared/LyricsSources/LyricsSources.h"
