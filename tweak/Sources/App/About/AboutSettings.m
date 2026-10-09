@@ -43,6 +43,8 @@ static UIViewController *v30WhatsNew(void) {
                 SGStatRow(@"Optional album sections", ^NSString *{ return @"Redesign"; }),
                 SGStatRow(@"Artist video visibility", ^NSString *{ return @"Redesign"; }),
                 SGStatRow(@"Language selector", ^NSString *{ return @"7 choices"; }),
+                SGStatRow(@"Apple Music-inspired preset", ^NSString *{ return @"Appearance"; }),
+                SGStatRow(@"Ubuntu audio controls", ^NSString *{ return @"Speed / pitch / haptics"; }),
             ]),
             SGNotedSection(@"Planned", @[
                 SGStatRow(@"0.50-style player and lyrics", ^NSString *{ return @"In progress"; }),
