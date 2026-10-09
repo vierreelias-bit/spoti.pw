@@ -267,7 +267,6 @@ static UIVisualEffect *elispotLensEffect(void) {
     lens.hidden = NO;
 
     BOOL solid = SGRReduceTransparency();
-    BOOL clearGlass = !solid && NSClassFromString(@"UIGlassEffect") != Nil;
     // Don't recreate the effect every layout pass: preserve the live
     // refraction while the user's finger is sliding.
     if (solid && lens.effect) lens.effect = nil;
@@ -291,7 +290,7 @@ static UIVisualEffect *elispotLensEffect(void) {
     CGRect frame = CGRectMake(self.frame.origin.x + centerX - diameter / 2,
                               self.frame.origin.y - diameter * 0.28,
                               diameter, diameter);
-    CGFloat titleTop = CGFLOAT_MAX;
+    __block CGFloat titleTop = CGFLOAT_MAX;
     if (item.title.length) {
         SGForEachView(self, ^(UIView *v) {
             if (![v isKindOfClass:UILabel.class] || v.hidden || v.alpha < 0.05) return;
@@ -650,8 +649,11 @@ static void syncBar(UIView *stockBar) {
     bar.layer.cornerRadius = capsuleRadius;
     bar.layer.cornerCurve = kCACornerCurveContinuous;
     bar.layer.masksToBounds = YES;
-    bar.layer.borderColor = [SGRAccent() colorWithAlphaComponent:0.36].CGColor;
-    bar.layer.borderWidth = 0.7;
+    // A fine neutral rim keeps the entire capsule glass-like over artwork.
+    bar.backgroundColor = UIColor.clearColor;
+    bar.translucent = YES;
+    bar.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.24].CGColor;
+    bar.layer.borderWidth = 0.85;
     if (host.superview != stockBar) [stockBar addSubview:host];
     else if (stockBar.subviews.lastObject != host) [stockBar bringSubviewToFront:host];
     logBarOnce(bar);
