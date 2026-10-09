@@ -82,6 +82,9 @@ static NSString *wordIn(UIView *button) {
     [super layoutSubviews];
     CGRect bounds = self.bounds;
     if (self.fillColor) {
+        // A themed solid Play capsule must not keep its old glass film on top.
+        UIView *previousGlass = objc_getAssociatedObject(self, &kCapsuleGlassKey);
+        previousGlass.hidden = YES;
         if (![self.backgroundColor isEqual:self.fillColor]) self.backgroundColor = self.fillColor;
         self.layer.cornerRadius = bounds.size.height / 2;
         self.layer.cornerCurve = kCACornerCurveContinuous;

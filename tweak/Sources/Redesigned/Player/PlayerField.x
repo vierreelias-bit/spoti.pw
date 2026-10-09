@@ -32,6 +32,7 @@ static const CGFloat kCoverMinWidth = 200;
 static char kFieldKey, kCoverImageKey;
 static __weak SGRArtworkField *sg_field;
 static __weak UIScrollView *sg_coverList;
+static __weak UIImageView *sg_watchedCover;  // changing images do not cause a layout pass
 static __weak UIImage *sg_lastCover;
 static NSString *sg_lastCoverURI;
 // Spotify's colour for the player, which can arrive before the plane has laid out once.
@@ -97,6 +98,7 @@ static SGRArtworkField *fieldIn(UIView *plane) {
 
 // The picture of the cell under the middle of the list once it has settled: mid swipe the middle is
 // between two tracks.
+static void publishCover(void);
 static UIImage *settledCover(UIScrollView *list) {
     if (!list.window || list.isDragging || list.isDecelerating) return nil;
     CGFloat middle = CGRectGetMidX(list.bounds);
@@ -105,8 +107,15 @@ static UIImage *settledCover(UIScrollView *list) {
         UIView *holder = SGRFindByIdentifier(cell, @"Encore.ImageView", &kCoverImageKey);
         if (holder.bounds.size.width < kCoverMinWidth) return nil;
         for (UIView *sub in holder.subviews) {
+            if (![sub isKindOfClass:UIImageView.class]) continue;
             UIImageView *image = (UIImageView *)sub;
-            if ([sub isKindOfClass:UIImageView.class] && image.image && image.alpha > 0) return image.image;
+            if (image != sg_watchedCover) {
+                sg_watchedCover = image;
+                SGRObserveImage(image, ^(UIImageView *updated) {
+                    if (updated == sg_watchedCover) publishCover();
+                });
+            }
+            if (image.image && image.alpha > 0) return image.image;
         }
         return nil;
     }

@@ -184,6 +184,7 @@ static SGRArtworkFollower *sg_follower;
 
 static char kBarCardKey, kBarImageKey;
 static __weak UIView *sg_barView;
+static __weak UIImageView *sg_observedBarCover;
 
 static void publishBarArtwork(void) {
     UIView *card = SGRFindByIdentifier(sg_barView, @"SPTNowPlayingBar", &kBarCardKey);
@@ -191,6 +192,14 @@ static void publishBarArtwork(void) {
     UIImageView *cover = nil;
     for (UIView *sub in holder.subviews) {
         if ([sub isKindOfClass:UIImageView.class]) cover = (UIImageView *)sub;
+    }
+    // The cover often arrives after Spotify's layout, without another layout
+    // event. Observe setImage: so the song theme can repaint on that frame.
+    if (cover && cover != sg_observedBarCover) {
+        sg_observedBarCover = cover;
+        SGRObserveImage(cover, ^(UIImageView *view) {
+            if (view == sg_observedBarCover) publishBarArtwork();
+        });
     }
     UIImage *image = cover.image;
     NSString *uri = SGURIString(SGPlayerState().track.URI);

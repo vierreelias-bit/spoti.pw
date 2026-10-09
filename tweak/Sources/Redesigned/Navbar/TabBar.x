@@ -530,7 +530,10 @@ static void syncBar(UIView *stockBar) {
     CGRect bounds = stockBar.bounds;
     CGFloat width = bounds.size.width;
     CGFloat height = MAX(bounds.size.height, glassHeight(bar, stockBar));
-    CGRect frame = CGRectMake(0, CGRectGetMaxY(bounds) - height, width, height);
+    // Move the floating tab capsule down by a few points, keeping its
+    // normal touch targets and the existing invisible swipe navigation.
+    CGFloat down = stockBar.window.safeAreaInsets.bottom >= 12 ? 5.0 : 2.0;
+    CGRect frame = CGRectMake(0, CGRectGetMaxY(bounds) - height + down, width, height);
     if (!CGRectEqualToRect(host.frame, frame)) host.frame = frame;
     // EliSpot v30: keep Spotify's safe-area/height calculations, but inset
     // the actual tab bar to form a floating rounded capsule instead of the

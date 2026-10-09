@@ -33,7 +33,7 @@
 
 // How much of the photo's height the dissolve into the field covers, and the scrim over the top of it that
 // keeps the status bar and the back button legible on a bright picture. The playlist's and the album's.
-static const CGFloat kDissolve = 0.46, kTopScrim = 140, kTopScrimAlpha = 0.28;
+static const CGFloat kDissolve = 0.78, kTopScrim = 140, kTopScrimAlpha = 0.28;
 // A photo view narrower than this is a placeholder glyph, and a picture shorter than this one mid load.
 static const CGFloat kMinCover = 80, kMinHero = 120;
 // The collapsed ImageHeaderView, Spotify's navigation bar; the text fades out over the last kFade before it.
@@ -115,9 +115,14 @@ static UIView *containerOf(UIView *header) {
     _scrim.colors = @[(id)[UIColor colorWithWhite:0 alpha:kTopScrimAlpha].CGColor, (id)UIColor.clearColor.CGColor];
     [self.layer addSublayer:_scrim];
 
+    // Let the actual image fade into the page's field instead of painting
+    // a solid band over it. Works for all fixed and song-matching themes.
     _dissolve = [CAGradientLayer layer];
-    _dissolve.zPosition = 2;
-    [self.layer addSublayer:_dissolve];
+    _dissolve.colors = @[(id)UIColor.whiteColor.CGColor,
+                         (id)UIColor.whiteColor.CGColor,
+                         (id)UIColor.clearColor.CGColor];
+    _dissolve.locations = @[@0, @(1.0 - kDissolve), @1];
+    _picture.layer.mask = _dissolve;
     self.fieldColor = SGRNeutralField();
     // The colour is read off the main thread, so it can land after the last layout pass of the page.
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(sgr_fieldColorDidChange)
@@ -135,15 +140,8 @@ static UIView *containerOf(UIView *header) {
 
 - (void)setFieldColor:(UIColor *)color {
     if (!color || [_fieldColor isEqual:color]) return;
+    // The field behind this alpha-masked picture already paints this colour.
     _fieldColor = [color copy];
-    // The clear end is the same colour with no alpha, so the fade keeps its hue instead of going through grey.
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-    _dissolve.colors = @[(id)[color colorWithAlphaComponent:0].CGColor,
-                         (id)[color colorWithAlphaComponent:0.72].CGColor,
-                         (id)color.CGColor];
-    _dissolve.locations = @[@0, @0.62, @1];
-    [CATransaction commit];
 }
 
 - (void)layoutSubviews {
@@ -152,8 +150,7 @@ static UIView *containerOf(UIView *header) {
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
     _scrim.frame = CGRectMake(0, 0, bounds.size.width, MIN(kTopScrim, bounds.size.height));
-    CGFloat fade = round(bounds.size.height * kDissolve);
-    _dissolve.frame = CGRectMake(0, bounds.size.height - fade, bounds.size.width, fade);
+    _dissolve.frame = _picture.bounds;
     [CATransaction commit];
 }
 
