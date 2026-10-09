@@ -578,6 +578,10 @@ static void syncBar(UIView *stockBar) {
     }
     bar.tintColor = SGRAccent();
     UIView *host = objc_getAssociatedObject(stockBar, &kHostKey);
+    // The floating orb extends above the capsule. Prevent Spotify's stock
+    // tab container from cutting it off at the old rectangular bar bounds.
+    stockBar.clipsToBounds = NO;
+    host.clipsToBounds = NO;
 
     for (UIView *sub in stockBar.subviews) {
         if (sub == host) continue;
