@@ -18,7 +18,7 @@ static const CGFloat kPausedScale = 0.84, kPausedScaleReduceMotion = 0.92;
 // The bar's 40pt cover lives in a tilt view of its own; the player's is 354.
 static const CGFloat kCoverMinWidth = 200;
 
-static char kPlateKey;
+static char kPlateKey, kMotionImageKey;
 static NSHashTable<UIView *> *sg_tilts;
 // The cover of each tilt view once found. A frame Spotify sets on a scaled view becomes its scaled
 // size, leaving bounds that no longer match the tilt view's, so the cover is not looked for by size again.
@@ -52,6 +52,22 @@ static BOOL inCoverCell(UIView *tilt) {
     return NO;
 }
 
+// Find the actual image rather than animating the parent cover, whose scale
+// is owned by the player's pause and open/close transitions.
+static UIImageView *imageInCover(UIView *cover) {
+    UIImageView *cached = objc_getAssociatedObject(cover, &kMotionImageKey);
+    if (cached.image && [cached isDescendantOfView:cover]) return cached;
+    __block UIImageView *found = nil;
+    SGForEachView(cover, ^(UIView *view) {
+        if (![view isKindOfClass:UIImageView.class]) return;
+        UIImageView *image = (UIImageView *)view;
+        if (!image.image || image.bounds.size.width < 100) return;
+        if (!found || image.bounds.size.width > found.bounds.size.width) found = image;
+    });
+    if (found) objc_setAssociatedObject(cover, &kMotionImageKey, found, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return found;
+}
+
 static void scaleCover(UIView *tilt, CGFloat scale) {
     UIView *cover = coverIn(tilt);
     if (!cover) return;
@@ -59,6 +75,7 @@ static void scaleCover(UIView *tilt, CGFloat scale) {
     CGAffineTransform transform = CGAffineTransformMakeScale(scale, scale);
     cover.transform = transform;
     plate.transform = transform;
+    SGRUpdateArtworkMotion(imageInCover(cover));
 }
 
 #pragma mark - where the cover is
