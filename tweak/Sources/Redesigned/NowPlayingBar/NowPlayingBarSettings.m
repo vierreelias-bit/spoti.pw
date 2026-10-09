@@ -8,19 +8,23 @@
 #import "Redesigned/Kit/SGRAnimatedArtwork.h"
 #import "Redesigned/Kit/SGRAppleCatalogLookup.h"
 
+static SGModRow *appleCatalogSwitch(void) {
+    SGModRow *row = SGOptionRow(@"Find album automatically",
+        @"Optional: send the playing artist and album name to Apple's public catalog search.",
+        SGRKeyAppleAlbumLookup);
+    row.changed = ^(BOOL on) {
+        if (on) SGRAppleCatalogSearchCurrent();
+    };
+    return row;
+}
+
 UIViewController *SGRNowPlayingBarSettingsPage(void) {
     return [[SGModPage alloc] initWithTitle:@"Now playing" intro:SGRestartNote sections:@[
         SGSection(nil, @[
             SGHideRow(@"Hide the device button", nil, SGRHideBarConnect),
         ]),
         SGNotedSection(@"Apple Music album", @[
-            ({ SGModRow *row = SGOptionRow(@"Find album automatically",
-                    @"Optional: send the playing artist and album name to Apple's public catalog search.",
-                    SGRKeyAppleAlbumLookup);
-               row.changed = ^(BOOL on) {
-                   if (on) SGRAppleCatalogSearchCurrent();
-               };
-               row; }),
+            appleCatalogSwitch(),
             SGWithSymbol(SGStatActionRow(@"Open matching album",
                 @"Find and open the album in Apple Music. Video artwork is not downloaded.",
                 ^NSString *{ return SGRAppleCatalogStatus(); },
