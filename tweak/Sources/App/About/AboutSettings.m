@@ -40,6 +40,9 @@ static UIViewController *v30WhatsNew(void) {
             SGSection(@"Added so far", @[
                 SGStatRow(@"Apple Music red accent", ^NSString *{ return @"Both looks"; }),
                 SGStatRow(@"Album track artist switch", ^NSString *{ return @"Redesign"; }),
+                SGStatRow(@"Optional album sections", ^NSString *{ return @"Redesign"; }),
+                SGStatRow(@"Artist video visibility", ^NSString *{ return @"Redesign"; }),
+                SGStatRow(@"Language selector", ^NSString *{ return @"7 choices"; }),
             ]),
             SGNotedSection(@"Planned", @[
                 SGStatRow(@"0.50-style player and lyrics", ^NSString *{ return @"In progress"; }),
