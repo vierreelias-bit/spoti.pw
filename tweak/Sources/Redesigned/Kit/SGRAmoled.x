@@ -74,7 +74,8 @@ static void refreshSongSurfaces(void) {
     for (NSUInteger i = 0; i < layers.count; i++) {
         if (originals[i] == NSNull.null) continue;
         CALayer *layer = layers[i];
-        id from = (__bridge id)(layer.presentationLayer ?: layer).backgroundColor;
+        CALayer *visible = layer.presentationLayer ?: layer;
+        id from = (__bridge id)visible.backgroundColor;
         layer.backgroundColor = (__bridge CGColorRef)originals[i];
         if (animate && from && layer.backgroundColor) {
             CABasicAnimation *fade = [CABasicAnimation animationWithKeyPath:@"backgroundColor"];
@@ -109,11 +110,10 @@ static BOOL isBaseGrey(CGColorRef color) {
     return c[0] > 0.01 && c[0] <= 0.10 && fabs(c[0] - c[1]) < 0.02 && fabs(c[1] - c[2]) < 0.02;
 }
 
-// Keep the original AMOLED black for Spotify's default look, but give the
-// selected red/blue/violet theme a *dark* tint instead of removing all colour
-// from the Home, Search and Library surfaces. The value is fixed at launch,
-// the same time redesign hooks are chosen. CoreGraphics owns the returned
-// colour so this remains safe inside background-thread CALayer setters.
+// Keep AMOLED black for the default look, use restrained dark tint
+// for fixed colour themes, and match the currently playing cover in Song
+// Colours mode. CoreGraphics owns the result, so this helper itself can
+// safely create colours while a CALayer setter runs off the main thread.
 static CGColorRef copyBlack(CGColorRef color) {
     CGFloat alpha = CGColorGetAlpha(color);
     // In adaptive theme mode, the background colour updates as Spotify
