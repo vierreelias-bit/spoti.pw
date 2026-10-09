@@ -13,10 +13,11 @@
 //   progress line 370x2 at the bottom. The glass pane goes on the container's view.
 #import "Core/SGCore.h"
 #import "Redesigned/Kit/SGRRepaint.h"
+#import "Redesigned/Kit/SGRTokens.h"
 #import "NowPlayingBar.h"
 
 static const CGFloat kCardRadius = 24;
-static char kGlassKey;
+static char kGlassKey, kTintFilmKey;
 static __weak UIVisualEffectView *sg_cardGlass;
 static __weak UIView *sg_cardArtwork;
 
@@ -91,6 +92,32 @@ static void restyleCardContent(UIView *card) {
     });
 }
 
+// EliSpot v30: the system's dark glass can look almost pure black over
+// Spotify's black pages. Put a faint colour film *inside* the glass content
+// view, not over the controls, so title/buttons remain tappable and readable.
+static void styleGlassTint(UIVisualEffectView *glass, CGFloat radius) {
+    if (!glass) return;
+    UIView *film = objc_getAssociatedObject(glass, &kTintFilmKey);
+    if (!film) {
+        film = [UIView new];
+        film.userInteractionEnabled = NO;
+        film.accessibilityElementsHidden = YES;
+        film.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        objc_setAssociatedObject(glass, &kTintFilmKey, film, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    UIView *surface = glass.contentView;
+    if (film.superview != surface) [surface insertSubview:film atIndex:0];
+    film.frame = surface.bounds;
+    film.layer.cornerRadius = radius;
+    film.layer.cornerCurve = kCACornerCurveContinuous;
+    // A cool light lift makes the mini-player distinct even when the theme
+    // accent is dark. Alpha is low enough to keep white labels contrasted.
+    film.backgroundColor = [SGRAccent() colorWithAlphaComponent:0.26];
+    glass.backgroundColor = [UIColor colorWithWhite:0.25 alpha:0.18];
+    glass.layer.borderColor = [SGRAccent() colorWithAlphaComponent:0.42].CGColor;
+    glass.layer.borderWidth = 0.75;
+}
+
 static void styleNowPlayingBar(UIViewController *container) {
     UIViewController *barVC = container.childViewControllers.firstObject;
     UIView *bar = barVC.viewIfLoaded ?: container.view;
@@ -120,6 +147,7 @@ static void styleNowPlayingBar(UIViewController *container) {
     sg_cardGlass = glass;
     glass.frame = frame;
     SGShapeGlass(glass, radius, NO);
+    styleGlassTint(glass, radius);
 
     static dispatch_once_t once;
     dispatch_once(&once, ^{
