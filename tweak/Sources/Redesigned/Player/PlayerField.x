@@ -55,6 +55,7 @@ static SGRArtworkField *fieldIn(UIView *plane) {
     field = [[SGRArtworkField alloc] initWithFrame:plane.bounds];
     field.showsBackdrop = YES;
     field.flows = SGEnabled(SGRKeyPlayerMotion);
+    field.followsSongTheme = SGFlag(SGRKeySongTheme, NO);
     // A paused song holds the colours still, the way it rests the cover (PlayerArtwork.x).
     field.motionHeld = SGPlayerState().isPaused;
     field.bleed = kBleed;

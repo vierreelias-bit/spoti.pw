@@ -26,6 +26,8 @@ extern NSNotificationName const SGRFieldColorDidChangeNotification;
 // the app is in front, the player is not opening or closing, Reduce Motion and Low Power Mode are off
 // and nothing holds it (motionHeld); otherwise it stays still where it was.
 @property (nonatomic) BOOL flows;
+// Opt in only for Now Playing; album and artist pages keep their own colours.
+@property (nonatomic) BOOL followsSongTheme;
 // Held still by the owner (the player while playback is paused).
 @property (nonatomic) BOOL motionHeld;
 // The backdrop's height in points from the top of the bounds; 0 is the window's height.

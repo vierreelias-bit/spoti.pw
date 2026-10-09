@@ -4,6 +4,7 @@
 #import "SGRBridges.h"
 #import "SGRPalette.h"
 #import "SGRTokens.h"
+#import "SGRAccent.h"
 
 NSNotificationName const SGRFieldColorDidChangeNotification = @"spotifyglass.redesign.fieldColorDidChange";
 
@@ -42,6 +43,7 @@ static NSDictionary *noActions(void) {
     NSString *_identity;
     NSUInteger _generation;
     BOOL _read;
+    BOOL _followsSongTheme;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -71,6 +73,53 @@ static NSDictionary *noActions(void) {
 
 - (UIColor *)fieldColor {
     return _color;
+}
+
+- (BOOL)followsSongTheme { return _followsSongTheme; }
+
+// Keep the whole Now Playing palette a coherent version of the main accent,
+// instead of five conflicting colours picked from different cover corners.
+- (NSArray<UIColor *> *)songFlowColors {
+    if (SGRSongColorRGB() < 0) return nil;
+    CGFloat h = 0, s = 0, b = 0, a = 1;
+    [SGRAccentColor() getHue:&h saturation:&s brightness:&b alpha:&a];
+    NSMutableArray<UIColor *> *colors = [NSMutableArray arrayWithCapacity:5];
+    for (NSNumber *value in @[@0.31, @0.26, @0.30, @0.27, @0.30]) {
+        [colors addObject:[UIColor colorWithHue:h saturation:MIN(0.90, MAX(0.60, s))
+                                      brightness:value.doubleValue alpha:1]];
+    }
+    return colors;
+}
+
+- (void)refreshSongTheme {
+    if (!_followsSongTheme || SGRSongColorRGB() < 0) return;
+    BOOL animated = self.window && !SGRReduceMotion();
+    [self applyColor:SGRSongFieldColor() animated:animated];
+    NSArray<UIColor *> *colors = [self songFlowColors];
+    if (_flows && colors.count == 5) {
+        [_flow setColors:colors animated:animated];
+        _flow.hidden = NO;
+        [self updateMotion];
+    }
+}
+
+- (void)songAccentChanged:(NSNotification *)notice {
+    [self refreshSongTheme];
+}
+
+- (void)setFollowsSongTheme:(BOOL)on {
+    if (_followsSongTheme == on) return;
+    _followsSongTheme = on;
+    // Old 100% black fade hid the tint beneath the playback controls.
+    _black.colors = @[(id)[UIColor colorWithWhite:0 alpha:0].CGColor,
+                      (id)[UIColor colorWithWhite:0 alpha:on ? 0.18 : 1].CGColor];
+    if (on) {
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(songAccentChanged:)
+            name:@"elispot.songAccentChanged" object:nil];
+        [self refreshSongTheme];
+    } else {
+        [NSNotificationCenter.defaultCenter removeObserver:self name:@"elispot.songAccentChanged" object:nil];
+    }
 }
 
 - (CGFloat)backdropHeightNow {
@@ -189,7 +238,7 @@ static NSDictionary *noActions(void) {
 }
 
 - (void)setProvisionalColor:(UIColor *)color {
-    if (_read || !color) return;
+    if (_read || !color || (_followsSongTheme && SGRSongColorRGB() >= 0)) return;
     [self applyColor:SGRFieldColorFor(color) animated:self.window != nil];
 }
 
@@ -218,12 +267,13 @@ static NSDictionary *noActions(void) {
 
 - (void)applyPalette:(SGRPalette *)palette animated:(BOOL)animated {
     _read = YES;
-    if (_flows && palette.flowColors) {
-        [_flow setColors:palette.flowColors animated:animated && !_flow.hidden];
+    NSArray<UIColor *> *flowColors = (_followsSongTheme ? [self songFlowColors] : nil) ?: palette.flowColors;
+    if (_flows && flowColors) {
+        [_flow setColors:flowColors animated:animated && !_flow.hidden];
         _flow.hidden = NO;
         [self updateMotion];
         // Past the moving field's edges (the pull that dismisses the player) the colour under it goes on.
-        [self applyColor:_preferred ?: _flow.baseColor animated:animated];
+        [self applyColor:(_followsSongTheme ? SGRSongFieldColor() : nil) ?: _preferred ?: _flow.baseColor animated:animated];
         return;
     }
     if (_showsBackdrop && !_flows && palette.backdrop) {
@@ -239,7 +289,7 @@ static NSDictionary *noActions(void) {
         _backdrop.hidden = NO;
         [CATransaction commit];
     }
-    [self applyColor:_preferred ?: palette.fieldColor animated:animated];
+    [self applyColor:(_followsSongTheme ? SGRSongFieldColor() : nil) ?: _preferred ?: palette.fieldColor animated:animated];
 }
 
 @end

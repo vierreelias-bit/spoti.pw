@@ -11,6 +11,7 @@
 #import "SGRBridges.h"
 #import "SGRPalette.h"
 #import <stdatomic.h>
+#import <stdbool.h>
 
 // The greens the app is known to build from literals: the token, and the older brand green the
 // upsell backend still names.
@@ -19,6 +20,7 @@ static const uint32_t kGreens[] = {0x1ED760, 0x1DB954};
 static NSInteger sg_accent = -1;   // 0xRRGGBB once chosen, read at launch
 static BOOL sg_songTheme;
 static atomic_uint sg_songRGB;        // read by CALayer hooks on background queues
+static atomic_bool sg_songReady;     // don't show Spotify green before the first cover arrives
 static NSUInteger sg_songGeneration; // rejects palette work for a previous song
 
 // A separate signal lets the tab bar and existing controls redraw when the
@@ -27,6 +29,7 @@ static NSString *const kSongAccentChanged = @"elispot.songAccentChanged";
 
 // The redesign's own green until another is picked; Spotify's is a pick of its own, stored as -1.
 static const NSInteger kDefaultAccent = 0x37F200;
+static const uint32_t kWaitingAccent = 0xB5B6C0;
 
 static NSInteger chosen(void) {
     NSInteger rgb = sg_songTheme ? (NSInteger)atomic_load_explicit(&sg_songRGB, memory_order_relaxed)
@@ -41,7 +44,19 @@ static void unpack(uint32_t rgb, CGFloat *r, CGFloat *g, CGFloat *b) {
 }
 
 NSInteger SGRSongColorRGB(void) {
-    return sg_songTheme ? (NSInteger)atomic_load_explicit(&sg_songRGB, memory_order_relaxed) : -1;
+    return sg_songTheme && atomic_load_explicit(&sg_songReady, memory_order_acquire)
+        ? (NSInteger)atomic_load_explicit(&sg_songRGB, memory_order_relaxed) : -1;
+}
+
+UIColor *SGRSongFieldColor(void) {
+    NSInteger rgb = SGRSongColorRGB();
+    if (rgb < 0) return nil;
+    CGFloat r, g, b, h = 0, s = 0, v = 0, a = 1;
+    unpack((uint32_t)rgb, &r, &g, &b);
+    [[UIColor colorWithRed:r green:g blue:b alpha:1] getHue:&h saturation:&s brightness:&v alpha:&a];
+    if (s < 0.12) return [UIColor colorWithWhite:0.17 alpha:1];
+    // More of the album's hue without sacrificing white label contrast.
+    return [UIColor colorWithHue:h saturation:MIN(0.88, MAX(0.62, s)) brightness:0.34 alpha:1];
 }
 
 UIColor *SGRAccentColor(void) {
@@ -208,7 +223,8 @@ static void updateSongAccent(UIImage *image) {
                        ((uint32_t)lround(green * 255) << 8) |
                        (uint32_t)lround(blue * 255);
         uint32_t previous = atomic_exchange_explicit(&sg_songRGB, rgb, memory_order_relaxed);
-        if (rgb != previous)
+        BOOL wasReady = atomic_exchange_explicit(&sg_songReady, true, memory_order_release);
+        if (!wasReady || rgb != previous)
             [NSNotificationCenter.defaultCenter postNotificationName:kSongAccentChanged object:nil];
     }];
 }
@@ -216,7 +232,8 @@ static void updateSongAccent(UIImage *image) {
 %ctor {
     if (!SGRedesignedUI()) return;
     sg_songTheme = SGFlag(SGRKeySongTheme, NO);
-    atomic_init(&sg_songRGB, 0x1ED760);
+    atomic_init(&sg_songRGB, kWaitingAccent);
+    atomic_init(&sg_songReady, false);
     sg_accent = chosen();
     if (sg_songTheme || sg_accent >= 0) %init;
     if (sg_songTheme) {

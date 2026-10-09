@@ -35,14 +35,14 @@ static NSMapTable<CAGradientLayer *, NSArray *> *gradientSeeds(void) {
 }
 
 static void rememberSurface(CALayer *layer, CGColorRef original) {
-    if (SGRSongColorRGB() < 0) return;
+    if (!SGFlag(SGRKeySongTheme, NO)) return;
     @synchronized (trackingLock()) {
         [surfaceSeeds() setObject:(__bridge id)original forKey:layer];
     }
 }
 
 static void rememberGradient(CAGradientLayer *layer, NSArray *original, BOOL tinted) {
-    if (SGRSongColorRGB() < 0) return;
+    if (!SGFlag(SGRKeySongTheme, NO)) return;
     @synchronized (trackingLock()) {
         if (tinted) [gradientSeeds() setObject:original forKey:layer];
         else [gradientSeeds() removeObjectForKey:layer];
@@ -124,9 +124,9 @@ static CGColorRef copyBlack(CGColorRef color) {
         CGFloat red = ((accent >> 16) & 255) / 255.0;
         CGFloat green = ((accent >> 8) & 255) / 255.0;
         CGFloat blue = (accent & 255) / 255.0;
-        return CGColorCreateGenericRGB(0.010 + red * 0.105,
-                                       0.010 + green * 0.105,
-                                       0.015 + blue * 0.105, alpha);
+        return CGColorCreateGenericRGB(0.015 + red * 0.155,
+                                       0.015 + green * 0.155,
+                                       0.019 + blue * 0.155, alpha);
     }
     accent = SGInt(SGRKeyAccent, -1);
     switch (accent) {
@@ -140,7 +140,7 @@ static CGColorRef copyBlack(CGColorRef color) {
 %hook CALayer
 - (void)setBackgroundColor:(CGColorRef)color {
     if (!isBaseGrey(color)) {
-        if (SGRSongColorRGB() >= 0) {
+        if (SGFlag(SGRKeySongTheme, NO)) {
             @synchronized (trackingLock()) { [surfaceSeeds() removeObjectForKey:(CALayer *)self]; }
         }
         %orig;
@@ -186,9 +186,9 @@ static CGColorRef copyBlack(CGColorRef color) {
                 CGFloat red = ((accent >> 16) & 255) / 255.0;
                 CGFloat green = ((accent >> 8) & 255) / 255.0;
                 CGFloat blue = (accent & 255) / 255.0;
-                sub.backgroundColor = [UIColor colorWithRed:0.010 + red * 0.105
-                                                    green:0.010 + green * 0.105
-                                                     blue:0.015 + blue * 0.105 alpha:1];
+                sub.backgroundColor = [UIColor colorWithRed:0.015 + red * 0.155
+                                                    green:0.015 + green * 0.155
+                                                     blue:0.019 + blue * 0.155 alpha:1];
             } else {
                 accent = SGInt(SGRKeyAccent, -1);
                 if (accent == 0xFA233B) sub.backgroundColor = [UIColor colorWithRed:.072 green:.027 blue:.042 alpha:1];

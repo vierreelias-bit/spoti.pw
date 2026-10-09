@@ -1,6 +1,7 @@
 #import "Core/SGCore.h"
 #import "SGRGlass.h"
 #import "SGRTokens.h"
+#import "SGRAccent.h"
 
 typedef NS_ENUM(NSInteger, SGRGlassMode) {
     SGRGlassModeGlass,
@@ -35,16 +36,18 @@ static UIView *newShape(SGRGlassMode mode) {
 
 #pragma mark - inside a control
 
-static char kInsideModeKey, kFilmKey;
+static char kInsideModeKey, kFilmKey, kProminentKey;
 
 // The film that makes a shape prominent, inside the effect's own content view so the corners clip it.
 static void keepFilm(UIView *shape, BOOL prominent, SGRGlassMode mode) {
+    BOOL theme = SGRSongColorRGB() >= 0;
     if (mode == SGRGlassModeSolid) {
-        shape.backgroundColor = prominent ? [SGRSolidGlassFill() colorWithAlphaComponent:0.26] : SGRSolidGlassFill();
+        shape.backgroundColor = theme ? [SGRAccent() colorWithAlphaComponent:0.24]
+                                      : (prominent ? [SGRSolidGlassFill() colorWithAlphaComponent:0.26] : SGRSolidGlassFill());
         return;
     }
     UIView *film = objc_getAssociatedObject(shape, &kFilmKey);
-    if (!prominent) {
+    if (!prominent && !theme) {
         film.hidden = YES;
         return;
     }
@@ -57,6 +60,8 @@ static void keepFilm(UIView *shape, BOOL prominent, SGRGlassMode mode) {
         objc_setAssociatedObject(shape, &kFilmKey, film, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     film.hidden = NO;
+    film.backgroundColor = theme ? [SGRAccent() colorWithAlphaComponent:prominent ? 0.27 : 0.18]
+                                 : [UIColor colorWithWhite:1 alpha:0.14];
     if (film.superview != content) [content addSubview:film];
     // The effect's content view does not clip, so the film carries the shape's corners itself; square ones
     // drew a lighter rectangle around the playlist's Play capsule (harness, 2026-09-17).
@@ -65,6 +70,26 @@ static void keepFilm(UIView *shape, BOOL prominent, SGRGlassMode mode) {
         film.layer.cornerRadius = MIN(content.bounds.size.width, content.bounds.size.height) / 2;
         film.layer.cornerCurve = kCACornerCurveContinuous;
     }
+}
+
+// Existing glass shapes refresh when the song changes; weak references avoid leaks.
+static void watchGlass(UIView *shape, BOOL prominent) {
+    static NSHashTable<UIView *> *shapes;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        shapes = [NSHashTable weakObjectsHashTable];
+        [NSNotificationCenter.defaultCenter addObserverForName:@"elispot.songAccentChanged"
+            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+                for (UIView *view in shapes.allObjects) {
+                    if (!view.window) continue;
+                    SGRGlassMode mode = (SGRGlassMode)[objc_getAssociatedObject(view, &kInsideModeKey) integerValue];
+                    BOOL isProminent = [objc_getAssociatedObject(view, &kProminentKey) boolValue];
+                    keepFilm(view, isProminent, mode);
+                }
+            }];
+    });
+    objc_setAssociatedObject(shape, &kProminentKey, @(prominent), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [shapes addObject:shape];
 }
 
 static UIView *glassInside(UIView *control, const void *key, CGSize size, BOOL capsule, BOOL prominent) {
@@ -98,6 +123,7 @@ static UIView *glassInside(UIView *control, const void *key, CGSize size, BOOL c
         shape.bounds = bounds;
         SGShapeGlass(shape, MIN(size.width, size.height) / 2, capsule);
     }
+    watchGlass(shape, prominent);
     keepFilm(shape, prominent, mode);
     CGPoint middle = CGPointMake(CGRectGetMidX(control.bounds), CGRectGetMidY(control.bounds));
     if (!CGPointEqualToPoint(shape.center, middle)) shape.center = middle;

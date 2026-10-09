@@ -7,6 +7,8 @@
 
 // Current song-dependent accent (or -1 if Song Colours theme is disabled).
 NSInteger SGRSongColorRGB(void);
+// Dark, readable Now Playing background tied to the current song; nil until artwork is ready.
+UIColor *SGRSongFieldColor(void);
 UIColor *SGRAccentColor(void);   // nil while Spotify's own green is kept
 NSString *SGRAccentLabel(void);  // "#RRGGBB", or the name of Spotify's own
 void SGRPickAccent(void);        // the system colour picker over the top of the app, stored on the way out

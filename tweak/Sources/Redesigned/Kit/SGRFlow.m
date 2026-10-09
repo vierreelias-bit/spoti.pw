@@ -1,4 +1,5 @@
 #import "SGRFlow.h"
+#import "SGRAccent.h"
 
 enum { kDiscs = 5 };
 
@@ -194,10 +195,14 @@ static NSArray *discColors(UIColor *color) {
 
 - (void)setColors:(NSArray<UIColor *> *)colors animated:(BOOL)animated {
     if (colors.count < kDiscs) return;
-    _baseColor = shaded(colors[4], kBaseShade);
+    BOOL songTheme = SGRSongColorRGB() >= 0;
+    _baseColor = shaded(colors[4], songTheme ? 0.83 : kBaseShade);
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
     [self recolor:_base key:@"backgroundColor" to:(__bridge id)_baseColor.CGColor animated:animated];
+    UIColor *bottom = [UIColor colorWithWhite:0 alpha:songTheme ? 0.17 : kShadeBottom];
+    NSArray *shade = @[(id)[UIColor colorWithWhite:0 alpha:0].CGColor, (id)bottom.CGColor];
+    [self recolor:_shade key:@"colors" to:shade animated:animated];
     for (int i = 0; i < kDiscs; i++) [self recolor:_discs[i] key:@"colors" to:discColors(colors[i]) animated:animated];
     [CATransaction commit];
 }

@@ -1,6 +1,7 @@
 #import "Core/SGCore.h"
 #import "SGRGlyph.h"
 #import "SGRTokens.h"
+#import "SGRAccent.h"
 
 static const CGFloat kMinTouch = 44, kPressAlpha = 0.5, kPressScale = 0.9, kDisabledAlpha = 0.35;
 
@@ -13,7 +14,20 @@ static const CGFloat kMinTouch = 44, kPressAlpha = 0.5, kPressScale = 0.9, kDisa
     _symbol = [symbol copy];
     self.preferredSymbolConfiguration = [UIImageSymbolConfiguration configurationWithPointSize:size weight:weight];
     self.image = symbol ? [UIImage systemImageNamed:symbol] : nil;
-    self.tintColor = SGRPrimary();
+    // Existing overlay buttons must recolour, not just the next buttons created.
+    static NSHashTable<SGRGlyphView *> *glyphs;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        glyphs = [NSHashTable weakObjectsHashTable];
+        [NSNotificationCenter.defaultCenter addObserverForName:@"elispot.songAccentChanged"
+            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *notification) {
+                UIColor *accent = SGRAccent();
+                for (SGRGlyphView *view in glyphs.allObjects)
+                    if (view.window) view.tintColor = accent;
+            }];
+    });
+    [glyphs addObject:self];
+    self.tintColor = SGFlag(SGRKeySongTheme, NO) ? SGRAccent() : SGRPrimary();
     self.contentMode = UIViewContentModeCenter;
     self.userInteractionEnabled = NO;
     self.isAccessibilityElement = NO;

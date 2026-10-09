@@ -79,7 +79,8 @@ void SGRPlayerLyricsChanged(void) {
     [glyph.glyph setSymbol:open ? kLyricsSymbolOpen : kLyricsSymbol animated:animated];
     void (^mark)(void) = ^{
         glyph.enabled = enabled;
-        glyph.glyph.tintColor = open ? SGRPrimary() : SGRSecondary();
+        glyph.glyph.tintColor = SGFlag(SGRKeySongTheme, NO) ? SGRAccent()
+            : (open ? SGRPrimary() : SGRSecondary());
     };
     if (animated) SGRAnimate(SGRMotionFade, mark, nil);
     else mark();
@@ -89,7 +90,7 @@ static SGRGlyphButton *lyricsGlyphIn(UIView *host) {
     SGRGlyphButton *glyph = objc_getAssociatedObject(host, &kLyricsGlyphKey);
     if (!glyph) {
         glyph = [SGRGlyphButton buttonWithSymbol:kLyricsSymbol pointSize:kLyricsGlyphSize title:@"Lyrics"];
-        glyph.glyph.tintColor = SGRSecondary();
+        glyph.glyph.tintColor = SGFlag(SGRKeySongTheme, NO) ? SGRAccent() : SGRSecondary();
         glyph.onTap = ^{ SGRPlayerToggleLyrics(); };
         objc_setAssociatedObject(host, &kLyricsGlyphKey, glyph, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
