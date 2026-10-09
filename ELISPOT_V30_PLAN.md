@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev4`  
+**Development package:** `30.0.0~dev5`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -15,6 +15,20 @@ requirements or used with separately obtained permission. No copyrighted
 
 - [x] Start a separate `elispot-v30` branch with v30 development metadata.
 - [x] Offer a red accent preset in both Legacy and Redesign appearance menus.
+- [x] Provide an appearance **Theme** picker: Spotify default, AMOLED
+      black, Apple Music-inspired red, Midnight blue and Violet. Keep the
+      independent system color picker for custom accents. Liquid Glass looks
+      are only offered on compatible iOS versions.
+- [x] Fix the Lyrics Sources row layout overflow by displaying the number
+      of selected sources rather than all provider names in the accessory.
+- [x] Rename misleading "Lyrics for every track" settings so users know
+      that availability depends on selected sources; prevent activating
+      it when no source is enabled.
+- [x] Add **Test lyrics for current song** diagnostics, calling only the
+      user's enabled providers and reporting whether they returned text.
+- [ ] Validate fallback lyrics injection on the user's Spotify build:
+      provider search success does not necessarily mean the Spotify player
+      shows the card; this still needs testing.
 - [x] Offer a one-tap **Apple Music-inspired look** preset on supported
       iOS versions. It combines EliSpot's own redesign, red accents, animated
       still artwork and moving field with a restart confirmation.
