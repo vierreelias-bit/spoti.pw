@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev7`  
+**Development package:** `30.0.0~dev8`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -52,6 +52,12 @@ requirements or used with separately obtained permission. No copyrighted
       UI dictionaries (English fallback).
 - [x] Give the redesigned mini-player a translucent theme-coloured
       glass film and subtle outline instead of an indistinguishable black card.
+- [x] Add a visible magnifying Liquid Glass-style lens to the tab
+      selector. It enlarges the hovered tab icon, follows the finger while
+      dragging, and animates to the nearest tab's centre on release. The lens
+      never handles input itself; Spotify remains the source of navigation.
+- [ ] Test the lens geometry, dark/light accessibility handling and
+      tab selection behaviour on an actual iPhone.
 - [x] Drag across the redesigned bottom tab bar to preview tabs. On
       release, choose the nearest tab and forward exactly one selection to
       Spotify; ordinary taps and the Home long-press shortcut remain.
