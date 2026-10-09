@@ -422,10 +422,6 @@ static void syncBar(UIView *stockBar) {
     }
     bar.tintColor = SGRAccent();
     UIView *host = objc_getAssociatedObject(stockBar, &kHostKey);
-    // The floating orb extends above the capsule. Prevent Spotify's stock
-    // tab container from cutting it off at the old rectangular bar bounds.
-    stockBar.clipsToBounds = NO;
-    host.clipsToBounds = NO;
 
     for (UIView *sub in stockBar.subviews) {
         if (sub == host) continue;
@@ -569,6 +565,12 @@ static void itemDidLayOut(UIView *item) {
 %ctor {
     if (!SGRedesignedUI()) return;
     %init;
+    // Re-tint the real system tab when artwork changes in Song Colours theme.
+    [NSNotificationCenter.defaultCenter addObserverForName:@"elispot.songAccentChanged"
+        object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *notification) {
+            UIView *bar = sg_stockBar;
+            if (bar) syncBar(bar);
+        }];
     SGRequireClasses(@[
         @"_TtC23NavigationUI_TabBarImpl10TabBarView",
         @"_TtC23NavigationUI_TabBarImpl21TabBarItemElementView",
