@@ -31,7 +31,31 @@ SGModSection *SGLyricsSourcesSection(BOOL namingSource) {
         UIViewController *top = SGTopController();
         [top presentViewController:alert animated:YES completion:nil];
     };
-    NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObjects:sources, allTracks, nil];
+    SGModRow *test = SGActionRow(@"Test lyrics for current song",
+        @"Check whether your enabled sources can find lyrics for the playing track.", ^{
+        NSString *track = SGKaraokePlayingTrack();
+        if (!SGLyricsEnabled() || !track.length) {
+            NSString *message = SGLyricsEnabled()
+                ? @"Play a song first, then try again."
+                : @"Enable at least one source in Sources, then restart Spotify.";
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(@"Lyrics source test")
+                message:SGT(message) preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:SGT(@"OK") style:UIAlertActionStyleCancel handler:nil]];
+            [SGTopController() presentViewController:alert animated:YES completion:nil];
+            return;
+        }
+        // Explicit diagnostic: query only the sources the user enabled.
+        SGLyricsFetch(track, ^(SGLyricsResult *result) {
+            NSString *detail = result.karaokeLines.count || result.texts.count
+                ? [NSString stringWithFormat:SGT(@"Found lyrics from %@."), SGLyricsProviderFor(result.provider).name ?: result.provider ?: @"source"]
+                : SGT(@"No lyrics found for this track from the selected sources.");
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(@"Lyrics source test")
+                message:detail preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:SGT(@"OK") style:UIAlertActionStyleCancel handler:nil]];
+            [SGTopController() presentViewController:alert animated:YES completion:nil];
+        });
+    });
+    NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObjects:sources, allTracks, test, nil];
     if (namingSource) [rows addObject:SGOptionRow(@"Show source", nil, SGKeyLyricsCredit)];
     return SGNotedSection(@"Sources", rows,
         @"Lyrics only appear when a selected provider finds them. Restart Spotify after changing these settings.");
