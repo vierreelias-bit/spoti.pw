@@ -6,12 +6,26 @@
 #import "Redesigned/Player/Player.h"
 #import "Redesigned/Kit/SGRArtworkMotion.h"
 #import "Redesigned/Kit/SGRAnimatedArtwork.h"
+#import "Redesigned/Kit/SGRAppleCatalogLookup.h"
 
 UIViewController *SGRNowPlayingBarSettingsPage(void) {
     return [[SGModPage alloc] initWithTitle:@"Now playing" intro:SGRestartNote sections:@[
         SGSection(nil, @[
             SGHideRow(@"Hide the device button", nil, SGRHideBarConnect),
         ]),
+        SGNotedSection(@"Apple Music album", @[
+            ({ SGModRow *row = SGOptionRow(@"Find album automatically",
+                    @"Optional: send the playing artist and album name to Apple's public catalog search.",
+                    SGRKeyAppleAlbumLookup);
+               row.changed = ^(BOOL on) {
+                   if (on) SGRAppleCatalogSearchCurrent();
+               };
+               row; }),
+            SGWithSymbol(SGStatActionRow(@"Open matching album",
+                @"Find and open the album in Apple Music. Video artwork is not downloaded.",
+                ^NSString *{ return SGRAppleCatalogStatus(); },
+                ^{ SGRAppleCatalogOpenCurrent(); }), @"music.note"),
+        ], @"Apple's public catalog lookup provides album metadata and a link, not licensed motion-video files. To show a moving cover inside Spotify, import a video that you have permission to use."),
         SGSection(nil, @[
             SGSwitchRow(@"Moving background", nil, SGRKeyPlayerMotion),
             SGOptionRow(@"Animated video artwork",
