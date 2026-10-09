@@ -139,7 +139,9 @@ NSString *SGT(NSString *english) {
             @"Remove video shelves from redesigned artist pages.": @"Piilota musiikkivideoiden osiot uudistetuilta artistisivuilta.",
             @"Extra sections": @"Lisäosiot",
             @"Show extra album sections": @"Näytä albumin lisäosiot",
-            @"Show album recommendations, videos and other sections below the tracks.": @"Näytä suositukset, musiikkivideot ja muut osiot kappalelistan alla."
+            @"Show album recommendations, videos and other sections below the tracks.": @"Näytä suositukset, musiikkivideot ja muut osiot kappalelistan alla.",
+            @"Animated cover motion": @"Animoitu kansiliike",
+            @"Moves still cover art, not original video. Respects Reduce Motion and Low Power Mode.": @"Liikuttaa tavallista kansikuvaa, ei alkuperäistä videota. Noudattaa Vähennä liikettä -asetusta ja virransäästötilaa."
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -236,7 +238,9 @@ NSString *SGT(NSString *english) {
             @"Remove video shelves from redesigned artist pages.": @"Dölj musikvideor från omdesignade artistsidor.",
             @"Extra sections": @"Extra avsnitt",
             @"Show extra album sections": @"Visa extra albumavsnitt",
-            @"Show album recommendations, videos and other sections below the tracks.": @"Visa rekommendationer, videor och andra avsnitt under låtarna."
+            @"Show album recommendations, videos and other sections below the tracks.": @"Visa rekommendationer, videor och andra avsnitt under låtarna.",
+            @"Animated cover motion": @"Animerad omslagsrörelse",
+            @"Moves still cover art, not original video. Respects Reduce Motion and Low Power Mode.": @"Ger stillbilder en mjuk rörelse, inte originalvideo. Respekterar Minska rörelse och strömsparläge."
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -333,7 +337,9 @@ NSString *SGT(NSString *english) {
             @"Remove video shelves from redesigned artist pages.": @"Musikvideos auf neu gestalteten Künstlerseiten ausblenden.",
             @"Extra sections": @"Weitere Abschnitte",
             @"Show extra album sections": @"Weitere Albumabschnitte anzeigen",
-            @"Show album recommendations, videos and other sections below the tracks.": @"Empfehlungen, Videos und weitere Abschnitte unter den Titeln anzeigen."
+            @"Show album recommendations, videos and other sections below the tracks.": @"Empfehlungen, Videos und weitere Abschnitte unter den Titeln anzeigen.",
+            @"Animated cover motion": @"Animierte Cover-Bewegung",
+            @"Moves still cover art, not original video. Respects Reduce Motion and Low Power Mode.": @"Bewegt Standbilder sanft, kein Originalvideo. Berücksichtigt Bewegung reduzieren und Stromsparmodus."
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -430,7 +436,9 @@ NSString *SGT(NSString *english) {
             @"Remove video shelves from redesigned artist pages.": @"Ocultar los vídeos musicales en las páginas rediseñadas de artistas.",
             @"Extra sections": @"Secciones adicionales",
             @"Show extra album sections": @"Mostrar más secciones del álbum",
-            @"Show album recommendations, videos and other sections below the tracks.": @"Mostrar recomendaciones, vídeos y otras secciones debajo de las canciones."
+            @"Show album recommendations, videos and other sections below the tracks.": @"Mostrar recomendaciones, vídeos y otras secciones debajo de las canciones.",
+            @"Animated cover motion": @"Movimiento animado de portadas",
+            @"Moves still cover art, not original video. Respects Reduce Motion and Low Power Mode.": @"Mueve suavemente las portadas fijas; no es vídeo original. Respeta Reducir movimiento y Ahorro de energía."
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -527,7 +535,9 @@ NSString *SGT(NSString *english) {
             @"Remove video shelves from redesigned artist pages.": @"Masquer les clips sur les pages d'artistes repensées.",
             @"Extra sections": @"Sections supplémentaires",
             @"Show extra album sections": @"Afficher les autres sections de l'album",
-            @"Show album recommendations, videos and other sections below the tracks.": @"Afficher les recommandations, vidéos et autres sections sous les titres."
+            @"Show album recommendations, videos and other sections below the tracks.": @"Afficher les recommandations, vidéos et autres sections sous les titres.",
+            @"Animated cover motion": @"Mouvement animé des pochettes",
+            @"Moves still cover art, not original video. Respects Reduce Motion and Low Power Mode.": @"Anime doucement les pochettes fixes, sans vidéo originale. Respecte Réduire les animations et le mode économie d’énergie."
         }
         };
     });
