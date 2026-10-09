@@ -12,6 +12,11 @@ UIViewController *SGRAlbumSettingsPage(void) {
                           @"Hide the subtitle below songs on album pages.",
                           SGRKeyHideAlbumTrackArtists),
             ]),
+            SGSection(@"Extra sections", @[
+                SGOptionRow(@"Show extra album sections",
+                            @"Show album recommendations, videos and other sections below the tracks.",
+                            SGRKeyShowAlbumExtraSections),
+            ]),
         ]
         footer:nil];
 }
