@@ -226,6 +226,9 @@ static UIVisualEffect *elispotLensEffect(void) {
         lens.layer.masksToBounds = YES;
         lens.layer.borderWidth = 0.5;
         lens.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.34].CGColor;
+        // Real system capsule corner configuration on iOS 26, rounded mask
+        // fallback when building/running with older UIKit.
+        SGShapeGlass(lens, 40, YES);
 
         UIView *glow = [[UIView alloc] initWithFrame:lens.bounds];
         glow.userInteractionEnabled = NO;
@@ -619,13 +622,6 @@ static void syncBar(UIView *stockBar) {
     // During a swipe the system selection bubble follows the finger. Spotify
     // only owns the selection again after the drag has finished.
     if (selected && !bar.sliding && bar.selectedItem != selected) bar.selectedItem = selected;
-    if (!bar.sliding && bar.selectedItem) {
-        NSUInteger lensIndex = [bar.items indexOfObject:bar.selectedItem];
-        if (lensIndex != NSNotFound)
-            [bar moveLensToIndex:lensIndex
-                             x:((CGFloat)lensIndex + 0.5) * bar.bounds.size.width / bar.items.count
-                      animated:NO];
-    }
     // An icon view Spotify has not built yet is looked for again shortly, not on the next touch.
     static NSUInteger retries;
     if (missing && retries++ < 40) {
@@ -645,6 +641,15 @@ static void syncBar(UIView *stockBar) {
     CGFloat side = MIN(12.0, MAX(0, (width - 250) / 2));
     CGRect barFrame = CGRectMake(side, 0, width - 2 * side, height);
     if (!CGRectEqualToRect(bar.frame, barFrame)) bar.frame = barFrame;
+    // Position the floating orb after UIKit has laid out the actual capsule;
+    // otherwise its first frame could be calculated using Spotify's 49pt bar.
+    if (!bar.sliding && bar.selectedItem) {
+        NSUInteger lensIndex = [bar.items indexOfObject:bar.selectedItem];
+        if (lensIndex != NSNotFound)
+            [bar moveLensToIndex:lensIndex
+                             x:((CGFloat)lensIndex + 0.5) * bar.bounds.size.width / bar.items.count
+                      animated:NO];
+    }
     CGFloat capsuleRadius = MIN(32.0, height / 2);
     bar.layer.cornerRadius = capsuleRadius;
     bar.layer.cornerCurve = kCACornerCurveContinuous;
