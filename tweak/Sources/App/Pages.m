@@ -16,6 +16,8 @@
 #import "Redesigned/Navbar/Navbar.h"
 #import "Redesigned/NowPlayingBar/NowPlayingBar.h"
 #import "Redesigned/Kit/SGRAccent.h"
+#import "Redesigned/Player/Player.h"
+#import "Redesigned/Kit/SGRArtworkMotion.h"
 
 NSString *const SGRedesignedUIInfo = @"The newest version of spoti.pw, leaning towards Apple Music's style. It is not compatible with the legacy look's settings.\n\nThe legacy look gives you more freedom, yet still looks like Spotify.";
 
@@ -47,6 +49,35 @@ static SGModRow *unavailableRow(void) {
     return SGWithSymbol(row, @"sparkles");
 }
 
+// A one-tap preset composed from existing EliSpot settings. Never changes
+// Spotify's subscription, artwork rights, or the user's account settings.
+static SGModRow *appleMusicStyleRow(void) {
+    SGModRow *row = SGStatActionRow(@"Apple Music-inspired look",
+        @"Use the redesigned player, red controls, motion field and animated still covers.",
+        ^NSString *{
+            BOOL active = SGFlag(SGKeyRedesign, NO) &&
+                          SGInt(SGRKeyAccent, -1) == 0xFA233B &&
+                          SGFlag(SGRKeyArtworkMotion, NO) &&
+                          SGFlag(SGRKeyPlayerMotion, YES);
+            return active ? @"Active" : @"Apply";
+        }, ^{
+            UIAlertController *alert = [UIAlertController
+                alertControllerWithTitle:SGT(@"Apple Music-inspired look")
+                message:SGT(@"Enable redesigned UI, red accents, moving background and animated still covers? Restart Spotify to apply. This is not original Apple Music video artwork.")
+                preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Cancel") style:UIAlertActionStyleCancel handler:nil]];
+            [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Apply") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                SGSetRedesignedUI(YES);
+                SGSetInt(SGRKeyAccent, 0xFA233B);
+                SGSetEnabled(SGRKeyPlayerMotion, YES);
+                SGSetEnabled(SGRKeyArtworkMotion, YES);
+                offerRestart(YES);
+            }]];
+            [SGTopController() presentViewController:alert animated:YES completion:nil];
+        });
+    return SGWithSymbol(row, @"music.note");
+}
+
 SGModSection *SGAppearanceSection(void) {
     if (!SGRedesignAvailable()) {
         NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObject:unavailableRow()];
@@ -60,7 +91,7 @@ SGModSection *SGAppearanceSection(void) {
         SGSetRedesignedUI(on);
         offerRestart(on);
     };
-    NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObject:SGWithSymbol(redesign, @"sparkles")];
+    NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObjects:SGWithSymbol(redesign, @"sparkles"), appleMusicStyleRow(), nil];
     [rows addObjectsFromArray:SGRedesignedUIStored() ? SGRAppearanceRows() : SGNativeAppearanceRows()];
     return SGNotedSection(@"Appearance", rows, @"Changes apply after you restart Spotify.");
 }
