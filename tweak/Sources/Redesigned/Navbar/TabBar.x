@@ -1,6 +1,7 @@
 // Tab bar: Spotify's own bar stays where it is but goes invisible, and a system UITabBar sits on top
-// of it. On iOS 26+ with UIDesignRequiresCompatibility off, UIKit draws that bar as real Liquid Glass
-// (selection bubble, lensing, light/dark adaptation) with no glass API of ours. Spotify's bar keeps
+// of it. The glass *bar* remains, but the selected-item sliding glass
+// indicator is deliberately removed. Gestures still pick the nearest tab
+// on release without any visual preview moving under the finger. Spotify's bar keeps
 // its frame, so the page insets and the now playing bar stay where Spotify puts them; where the system
 // bar is taller than Spotify's, Spotify is made to leave it the room (see "room for the glass bar").
 //
@@ -180,9 +181,46 @@ static void forwardTap(UIView *item) {
     }
 }
 
+// An explicit transparent indicator is more reliable than the system's nil
+// default, which can make UIKit draw its own moving selection pill.
+static UIImage *noSelectionIndicator(void) {
+    static UIImage *blank;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        UIGraphicsImageRenderer *renderer =
+            [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(2, 2)];
+        blank = [[renderer imageWithActions:^(UIGraphicsImageRendererContext *ctx) {}]
+            imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+    });
+    return blank;
+}
+
+static void suppressSelectionBubble(UITabBar *bar) {
+    // iOS 26 can draw its Liquid Glass selection with a separate view rather
+    // than UITabBarAppearance's indicator image. Only suppress views explicitly
+    // identified by UIKit as selection indicators; never hide icons or labels.
+    SGForEachView(bar, ^(UIView *view) {
+        if (view == bar) return;
+        NSString *cls = NSStringFromClass(view.class);
+        BOOL indicator = [cls rangeOfString:@"SelectionIndicator"
+                                   options:NSCaseInsensitiveSearch].location != NSNotFound ||
+                         [cls rangeOfString:@"SelectionHighlight"
+                                   options:NSCaseInsensitiveSearch].location != NSNotFound;
+        if (indicator) {
+            view.hidden = YES;
+            view.userInteractionEnabled = NO;
+        }
+    });
+}
+
 #pragma mark - the system bar
 
 @implementation SGRSystemTabBar
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    suppressSelectionBubble(self);
+}
 
 - (void)tabBar:(UITabBar *)tabBar didSelectItem:(UITabBarItem *)item {
     // A drag previews different tabs but must only navigate once on release.
@@ -234,24 +272,23 @@ static void forwardTap(UIView *item) {
     UIGestureRecognizerState state = slide.state;
     if (state == UIGestureRecognizerStateBegan && !self.holding) self.sliding = YES;
     if (!self.sliding) return;
-    if (state == UIGestureRecognizerStateBegan || state == UIGestureRecognizerStateChanged ||
-        state == UIGestureRecognizerStateEnded) {
+    // Do not preview the tab while the finger moves. The swipe is completely
+    // invisible: it changes neither selectedItem nor any decoration until
+    // the release, when the nearest item receives one real Spotify tap.
+    if (state == UIGestureRecognizerStateEnded) {
         NSUInteger index = [self nearestTabAtPoint:[slide locationInView:self]];
+        self.sliding = NO;
         if (index != NSNotFound) {
             UITabBarItem *target = self.items[index];
             if (self.selectedItem != target) self.selectedItem = target;
-            if (state == UIGestureRecognizerStateEnded) {
-                self.sliding = NO;
-                // Programmatic selection doesn't navigate Spotify. Forward
-                // exactly once after release, never while the finger moves.
-                forwardTap(self.sources[index]);
-                UIView *stockBar = self.stockBar;
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)),
-                               dispatch_get_main_queue(), ^{
-                    if (stockBar) syncBar(stockBar);
-                });
-                return;
-            }
+            suppressSelectionBubble(self);
+            forwardTap(self.sources[index]);
+            UIView *stockBar = self.stockBar;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (stockBar) syncBar(stockBar);
+            });
+            return;
         }
     }
     if (state == UIGestureRecognizerStateCancelled || state == UIGestureRecognizerStateFailed ||
@@ -403,6 +440,16 @@ static void syncBar(UIView *stockBar) {
         // the system is, and so is the bar.
         bar.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
         bar.delegate = bar;
+        // Suppress UIKit's built-in selection background, not the actual
+        // selected icon/title. Preserve the system glass behind all tabs.
+        UIImage *blank = noSelectionIndicator();
+        UITabBarAppearance *appearance = [bar.standardAppearance copy];
+        if (!appearance) appearance = [UITabBarAppearance new];
+        appearance.selectionIndicatorImage = blank;
+        appearance.selectionIndicatorTintColor = UIColor.clearColor;
+        bar.standardAppearance = appearance;
+        bar.scrollEdgeAppearance = [appearance copy];
+        bar.selectionIndicatorImage = blank;
         bar.stockBar = stockBar;
         UILongPressGestureRecognizer *hold = [[UILongPressGestureRecognizer alloc] initWithTarget:bar action:@selector(held:)];
         hold.delegate = bar;
@@ -463,8 +510,8 @@ static void syncBar(UIView *stockBar) {
         if (hideLabels ? item.title != nil : title.length && ![title isEqualToString:item.title]) item.title = title;
         if (!selected && isActive(sources[i])) selected = item;
     }
-    // During a swipe the system selection bubble follows the finger. Spotify
-    // only owns the selection again after the drag has finished.
+    // No moving selection indicator during swipes. Keep the selected icon
+    // in sync with Spotify only when the finger has been released.
     if (selected && !bar.sliding && bar.selectedItem != selected) bar.selectedItem = selected;
     // An icon view Spotify has not built yet is looked for again shortly, not on the next touch.
     static NSUInteger retries;
