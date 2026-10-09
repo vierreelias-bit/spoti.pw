@@ -64,14 +64,16 @@ static void applyTheme(NSInteger theme) {
     if (theme == 4) accent = 0xAD72F8;       // Violet
     SGSetInt(SGKeyAccent, accent);
     SGSetInt(SGRKeyAccent, accent);
+    SGSetEnabled(SGRKeySongTheme, theme == 5);
     SGSetEnabled(SGRKeyPlayerMotion, redesign);
-    SGSetEnabled(SGRKeyArtworkMotion, theme == 2);
+    SGSetEnabled(SGRKeyArtworkMotion, theme == 2 || theme == 5);
 }
 
 static NSString *themeSummary(void) {
     BOOL redesign = SGFlag(SGKeyRedesign, NO);
     NSInteger accent = SGInt(redesign ? SGRKeyAccent : SGKeyAccent, -1);
     if (redesign) {
+        if (SGFlag(SGRKeySongTheme, NO)) return SGT(@"Colours follow song");
         if (accent == 0xFA233B) return SGT(@"Apple Music style");
         if (accent == 0x588BFF) return SGT(@"Midnight blue");
         if (accent == 0xAD72F8) return SGT(@"Violet");
@@ -83,7 +85,7 @@ static NSString *themeSummary(void) {
 
 static SGModRow *themePickerRow(void) {
     SGModRow *row = SGStatActionRow(@"Theme",
-        @"Choose a Spotify, AMOLED, Apple Music-inspired or coloured look.",
+        @"Choose Spotify, AMOLED, Apple Music style, custom colours or colours that follow each song.",
         ^NSString *{ return themeSummary(); }, ^{
             UIViewController *top = SGTopController();
             if (!top) return;
@@ -91,7 +93,8 @@ static SGModRow *themePickerRow(void) {
                 message:SGT(@"Pick a look. Use Accent colour for a custom colour. Changes require a Spotify restart.")
                 preferredStyle:UIAlertControllerStyleActionSheet];
             NSArray<NSString *> *names = @[@"Spotify default", @"AMOLED black",
-                                          @"Apple Music style", @"Midnight blue", @"Violet"];
+                                          @"Apple Music style", @"Midnight blue",
+                                          @"Violet", @"Colours follow song"];
             for (NSInteger i = 0; i < (NSInteger)names.count; i++) {
                 // Liquid Glass requires iOS 26+, so never offer unsupported
                 // themes that would silently fail on an older device.
