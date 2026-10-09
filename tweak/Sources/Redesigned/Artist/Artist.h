@@ -25,3 +25,8 @@ UIView *SGRArtistPageOf(UIView *view);
 UIColor *SGRArtistFieldColor(UIView *view);
 // The artist's photo, for the page's field to take its colour from. The same image again is a no-op.
 void SGRArtistSetArtwork(UIView *view, UIImage *image);
+
+// EliSpot v30: choose whether to hide music-video shelves on redesigned artist pages.
+// The old redesign hid them unconditionally, so preserve that default.
+#define SGRKeyArtistHideVideos @"spotifyglass.redesign.artist.hideVideos"
+UIViewController *SGRArtistSettingsPage(void);
