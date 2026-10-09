@@ -25,7 +25,9 @@ static CGFloat sg_room, sg_glassHeight;   // see "room for the glass bar"
 @property (nonatomic, weak) UIView *stockBar;
 @property (nonatomic, copy) NSArray<UIView *> *sources;
 @property (nonatomic, weak) UILongPressGestureRecognizer *hold;
+@property (nonatomic, weak) UIPanGestureRecognizer *slide;
 @property (nonatomic) BOOL holding;
+@property (nonatomic) BOOL sliding;
 @end
 
 static void syncBar(UIView *stockBar);
@@ -182,6 +184,8 @@ static void forwardTap(UIView *item) {
 @implementation SGRSystemTabBar
 
 - (void)tabBar:(UITabBar *)tabBar didSelectItem:(UITabBarItem *)item {
+    // A drag previews different tabs but must only navigate once on release.
+    if (self.sliding) return;
     NSUInteger index = [self.items indexOfObject:item];
     if (index == NSNotFound || index >= self.sources.count) return;
     // Home tapped while on Home pops Spotify's stack, which would take Mod Settings straight off it.
@@ -214,14 +218,68 @@ static void forwardTap(UIView *item) {
     return nearest;
 }
 
-// UIView asks itself this for its own recognizers too, so only the hold is answered here.
+// A horizontal swipe previews the nearest tab; on release the selection
+// snaps to that tab and sends a single tap through Spotify's existing router.
+// Normal taps and the long-press-on-Home shortcut keep their own behavior.
+- (NSUInteger)nearestTabAtPoint:(CGPoint)point {
+    NSUInteger count = MIN(self.items.count, self.sources.count);
+    CGFloat width = CGRectGetWidth(self.bounds);
+    if (!count || width <= 0) return NSNotFound;
+    CGFloat x = fmax(0, fmin(point.x, width - 0.01));
+    return MIN(count - 1, (NSUInteger)floor(x * count / width));
+}
+
+- (void)slid:(UIPanGestureRecognizer *)slide {
+    UIGestureRecognizerState state = slide.state;
+    if (state == UIGestureRecognizerStateBegan && !self.holding) self.sliding = YES;
+    if (!self.sliding) return;
+    if (state == UIGestureRecognizerStateBegan || state == UIGestureRecognizerStateChanged ||
+        state == UIGestureRecognizerStateEnded) {
+        NSUInteger index = [self nearestTabAtPoint:[slide locationInView:self]];
+        if (index != NSNotFound) {
+            UITabBarItem *target = self.items[index];
+            if (self.selectedItem != target) self.selectedItem = target;
+            if (state == UIGestureRecognizerStateEnded) {
+                self.sliding = NO;
+                // Programmatic selection doesn't navigate Spotify. Forward
+                // exactly once after release, never while the finger moves.
+                forwardTap(self.sources[index]);
+                UIView *stockBar = self.stockBar;
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)),
+                               dispatch_get_main_queue(), ^{
+                    if (stockBar) syncBar(stockBar);
+                });
+                return;
+            }
+        }
+    }
+    if (state == UIGestureRecognizerStateCancelled || state == UIGestureRecognizerStateFailed ||
+        state == UIGestureRecognizerStateEnded) {
+        self.sliding = NO;
+        UIView *stockBar = self.stockBar;
+        if (stockBar) syncBar(stockBar);
+    }
+}
+
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)recognizer {
-    if (recognizer != self.hold) return [super gestureRecognizerShouldBegin:recognizer];
-    NSUInteger index = [self.items indexOfObject:[self itemAt:[recognizer locationInView:self]]];
-    return index < self.sources.count && isHome(self.sources[index], self.stockBar);
+    if (recognizer == self.slide) {
+        CGPoint delta = [(UIPanGestureRecognizer *)recognizer translationInView:self];
+        // Don't steal vertical page scrolling or taps from the tab bar.
+        return self.sources.count > 1 && !self.holding &&
+               fabs(delta.x) > fabs(delta.y) * 1.25;
+    }
+    if (recognizer == self.hold) {
+        NSUInteger index = [self.items indexOfObject:[self itemAt:[recognizer locationInView:self]]];
+        return index < self.sources.count && !self.sliding &&
+               isHome(self.sources[index], self.stockBar);
+    }
+    return [super gestureRecognizerShouldBegin:recognizer];
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)recognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other {
+    // The pan cancels UITabBar's touch-up selection so a drag can't trigger
+    // both a regular tap and its final snapped choice.
+    if (recognizer == self.slide || other == self.slide) return NO;
     return YES;
 }
 
@@ -349,6 +407,13 @@ static void syncBar(UIView *stockBar) {
         hold.delegate = bar;
         [bar addGestureRecognizer:hold];
         bar.hold = hold;
+        UIPanGestureRecognizer *slide = [[UIPanGestureRecognizer alloc]
+            initWithTarget:bar action:@selector(slid:)];
+        slide.delegate = bar;
+        slide.maximumNumberOfTouches = 1;
+        slide.cancelsTouchesInView = YES;
+        [bar addGestureRecognizer:slide];
+        bar.slide = slide;
         objc_setAssociatedObject(stockBar, &kBarKey, bar, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         SGRTabBarHost *host = [SGRTabBarHost new];
         [host addSubview:bar];
@@ -397,7 +462,9 @@ static void syncBar(UIView *stockBar) {
         if (hideLabels ? item.title != nil : title.length && ![title isEqualToString:item.title]) item.title = title;
         if (!selected && isActive(sources[i])) selected = item;
     }
-    if (selected && bar.selectedItem != selected) bar.selectedItem = selected;
+    // During a swipe the system selection bubble follows the finger. Spotify
+    // only owns the selection again after the drag has finished.
+    if (selected && !bar.sliding && bar.selectedItem != selected) bar.selectedItem = selected;
     // An icon view Spotify has not built yet is looked for again shortly, not on the next touch.
     static NSUInteger retries;
     if (missing && retries++ < 40) {
