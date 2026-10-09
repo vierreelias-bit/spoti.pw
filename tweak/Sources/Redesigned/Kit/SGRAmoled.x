@@ -7,6 +7,7 @@
 // message bar and the player's bottom gradient view.
 #import "Core/SGCore.h"
 #import "SGRAccent.h"
+#import "SGRTokens.h"
 
 // Keep weak references only to Spotify surfaces we recolour. On a song
 // change, replay the *original* #121212 paint through our existing hook.
@@ -66,14 +67,35 @@ static void refreshSongSurfaces(void) {
             [gradientColours addObject:[gradientSeeds() objectForKey:gradient] ?: NSNull.null];
         }
     }
-    // Calls the hooks below again, but does not recurse into this notification.
+    // Calls the hooks below again, but does not recurse into this
+    // notification. Crossfade the old and new surface colours without
+    // animating any views or interfering with touch targets.
+    BOOL animate = !SGRReduceMotion();
     for (NSUInteger i = 0; i < layers.count; i++) {
-        if (originals[i] != NSNull.null)
-            layers[i].backgroundColor = (__bridge CGColorRef)originals[i];
+        if (originals[i] == NSNull.null) continue;
+        CALayer *layer = layers[i];
+        id from = (__bridge id)(layer.presentationLayer ?: layer).backgroundColor;
+        layer.backgroundColor = (__bridge CGColorRef)originals[i];
+        if (animate && from && layer.backgroundColor) {
+            CABasicAnimation *fade = [CABasicAnimation animationWithKeyPath:@"backgroundColor"];
+            fade.fromValue = from;
+            fade.toValue = (__bridge id)layer.backgroundColor;
+            fade.duration = SGRCrossfade;
+            [layer addAnimation:fade forKey:@"elispot.songBackground"];
+        }
     }
     for (NSUInteger i = 0; i < gradients.count; i++) {
-        if (gradientColours[i] != NSNull.null)
-            gradients[i].colors = gradientColours[i];
+        if (gradientColours[i] == NSNull.null) continue;
+        CAGradientLayer *layer = gradients[i];
+        NSArray *from = ((CAGradientLayer *)(layer.presentationLayer ?: layer)).colors;
+        layer.colors = gradientColours[i];
+        if (animate && from.count == layer.colors.count) {
+            CABasicAnimation *fade = [CABasicAnimation animationWithKeyPath:@"colors"];
+            fade.fromValue = from;
+            fade.toValue = layer.colors;
+            fade.duration = SGRCrossfade;
+            [layer addAnimation:fade forKey:@"elispot.songGradient"];
+        }
     }
 }
 
