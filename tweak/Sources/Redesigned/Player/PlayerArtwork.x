@@ -75,7 +75,9 @@ static void scaleCover(UIView *tilt, CGFloat scale) {
     CGAffineTransform transform = CGAffineTransformMakeScale(scale, scale);
     cover.transform = transform;
     plate.transform = transform;
-    SGRUpdateArtworkMotion(imageInCover(cover));
+    UIImageView *picture = imageInCover(cover);
+    SGRUpdateArtworkMotion(picture);
+    SGRUpdateVideoArtwork(picture);
 }
 
 #pragma mark - where the cover is
@@ -217,6 +219,7 @@ static SGRPlayerArtworkWatcher *sg_artworkWatcher;
 %ctor {
     if (!SGRedesignedUI()) return;
     %init;
+    SGRStartVideoArtworkObservers();
     sg_tilts = [NSHashTable weakObjectsHashTable];
     sg_covers = [NSMapTable weakToWeakObjectsMapTable];
     sg_artworkWatcher = [SGRPlayerArtworkWatcher new];
