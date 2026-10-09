@@ -12,6 +12,9 @@ UIViewController *SGRNowPlayingBarSettingsPage(void) {
         ]),
         SGSection(nil, @[
             SGSwitchRow(@"Moving background", nil, SGRKeyPlayerMotion),
+            SGOptionRow(@"Animated cover motion",
+                        @"Moves still cover art, not original video. Respects Reduce Motion and Low Power Mode.",
+                        SGRKeyArtworkMotion),
         ]),
     ] footer:nil];
 }
