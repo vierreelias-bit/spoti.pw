@@ -391,11 +391,13 @@ static void replace(void) {
         SGLog(@"redesign player: the lyrics have the player's view %.0fx%.0f", host.bounds.size.width, host.bounds.size.height);
     }
     replace();
+    SGRInlineLyricsRelayout(host);
 }
 
 // The bar morphs back out of a full size cover as the player closes, so the thumbnail is put away first.
 - (void)viewWillDisappear:(BOOL)animated {
     if (sg_open) setOpen(NO, NO);
+    SGRInlineLyricsHide(((UIViewController *)self).viewIfLoaded);
     %orig;
 }
 %end
