@@ -75,7 +75,7 @@ static void showLookupNotice(NSString *message) {
 }
 
 static void searchAlbum(BOOL manuallyRequested) {
-    NSAssert(NSThread.isMainThread, @"Apple album lookup runs on main");
+    NSCAssert(NSThread.isMainThread, @"Apple album lookup runs on main");
     NSString *artist = nil, *album = nil;
     NSString *key = currentKey(&artist, &album);
     if (!key) {

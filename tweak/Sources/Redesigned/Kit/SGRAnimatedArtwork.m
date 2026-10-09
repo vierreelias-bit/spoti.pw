@@ -87,7 +87,7 @@ static NSURL *videoURL(NSString *track) {
         self.player = [AVQueuePlayer queuePlayerWithItems:@[]];
         self.player.muted = YES;
         self.player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
-        self.looper = [[AVPlayerLooper alloc] initWithPlayer:self.player templateItem:item];
+        self.looper = [AVPlayerLooper playerLooperWithPlayer:self.player templateItem:item];
         self.layer = [AVPlayerLayer playerLayerWithPlayer:self.player];
         self.layer.videoGravity = AVLayerVideoGravityResizeAspectFill;
         // UIImageView's bitmap remains underneath as the natural fallback
