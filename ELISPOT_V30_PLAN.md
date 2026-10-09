@@ -80,27 +80,6 @@ requirements or used with separately obtained permission. No copyrighted
       UI dictionaries (English fallback).
 - [x] Give the redesigned mini-player a translucent theme-coloured
       glass film and subtle outline instead of an indistinguishable black card.
-- [x] Rework the selected-tab indicator into a larger clear Liquid
-      Glass-style floating orb, styled from the supplied reference:
-      native runtime UIGlassEffect (iOS 26+), a thin chromatic border,
-      a lightly tinted enlarged icon, and springy snapping on release.
-      The host now allows the orb to float above the capsule without
-      clipping, while the underlying UITabBar handles navigation.
-- [x] Keep a thin system blur and an opaque accessibility fallback on
-      iOS versions that do not support clear glass.
-- [ ] Test the reference-style globe on a device. The exact optical
-      refraction and caption positions depend on iOS/UI layout.
-- [x] Fix the lens covering tab captions: use a smaller, more
-      transparent blurred glass bubble (maximum 34 pt instead of 48 pt),
-      measure the actual UIKit label position and shrink or hide the bubble
-      before it could overlap any selected tab text.
-- [ ] Verify the resized lens on iPhone, including large accessibility text.
-- [x] Add a visible magnifying Liquid Glass-style lens to the tab
-      selector. It enlarges the hovered tab icon, follows the finger while
-      dragging, and animates to the nearest tab's centre on release. The lens
-      never handles input itself; Spotify remains the source of navigation.
-- [ ] Test the lens geometry, dark/light accessibility handling and
-      tab selection behaviour on an actual iPhone.
 - [x] Drag across the redesigned bottom tab bar to preview tabs. On
       release, choose the nearest tab and forward exactly one selection to
       Spotify; ordinary taps and the Home long-press shortcut remain.
