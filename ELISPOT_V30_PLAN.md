@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev13`  
+**Development package:** `30.0.0~dev14`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -10,6 +10,23 @@ which does not grant redistribution/derivative-work permission.
 Any similar features must be independently implemented from functional
 requirements or used with separately obtained permission. No copyrighted
 0.50.0 source has been transplanted into this branch.
+
+## v30 dev14 changes
+
+- [x] Improve the existing **Colours follow song** theme. The active
+      Spotify layers and dark gradients are tracked using weak references
+      and refreshed when the current song's artwork changes, rather than
+      waiting for Spotify to repaint the page.
+- [x] Crossfade those colour changes over the shared theme animation
+      duration; honor iOS Reduce Motion for immediate colour changes.
+- [x] EliSpot's own Settings background gradient follows each new
+      artwork colour while the page is open, without covering controls.
+- [x] Handle monochrome covers with a neutral silver accent instead of
+      keeping the last colour of a previous album.
+- [x] Keep existing song-coloured Now Playing glass and system tab tint,
+      including invisible swipe-to-change-tabs gesture.
+- [ ] **Ubuntu build and iPhone appearance not yet verified.** Check
+      performance and contrast across album changes and small devices.
 
 ## v30 dev13 changes
 
