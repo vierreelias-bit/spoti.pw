@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev9`  
+**Development package:** `30.0.0~dev10`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -52,6 +52,16 @@ requirements or used with separately obtained permission. No copyrighted
       UI dictionaries (English fallback).
 - [x] Give the redesigned mini-player a translucent theme-coloured
       glass film and subtle outline instead of an indistinguishable black card.
+- [x] Rework the selected-tab indicator into a larger clear Liquid
+      Glass-style floating orb, styled from the supplied reference:
+      native runtime UIGlassEffect (iOS 26+), a thin chromatic border,
+      a lightly tinted enlarged icon, and springy snapping on release.
+      The host now allows the orb to float above the capsule without
+      clipping, while the underlying UITabBar handles navigation.
+- [x] Keep a thin system blur and an opaque accessibility fallback on
+      iOS versions that do not support clear glass.
+- [ ] Test the reference-style globe on a device. The exact optical
+      refraction and caption positions depend on iOS/UI layout.
 - [x] Fix the lens covering tab captions: use a smaller, more
       transparent blurred glass bubble (maximum 34 pt instead of 48 pt),
       measure the actual UIKit label position and shrink or hide the bubble
