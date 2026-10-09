@@ -189,7 +189,11 @@ NSString *SGT(NSString *english) {
             @"Translation language": @"Käännöskieli",
             @"Lock screen lyrics": @"Lukitusnäytön sanoitukset",
             @"Current line in place of the artist": @"Nykyinen sanoitusrivi artistin nimen tilalla",
-            @"Any": @"Mikä tahansa"
+            @"Any": @"Mikä tahansa",
+            @"sources": @"lähdettä",
+            @"Found lyrics": @"Sanoitukset löytyivät",
+            @"The redesigned look will be used when Spotify restarts.": @"Uudistettu ulkoasu otetaan käyttöön Spotifyn käynnistyessä uudelleen.",
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valittu Spotify-tyylinen teema otetaan käyttöön Spotifyn käynnistyessä uudelleen."
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -323,7 +327,11 @@ NSString *SGT(NSString *english) {
             @"Show source": @"Visa källa",
             @"Simulate word timing": @"Simulera ordtiming",
             @"Text sizes": @"Textstorlekar",
-            @"Translation language": @"Översättningsspråk"
+            @"Translation language": @"Översättningsspråk",
+            @"sources": @"källor",
+            @"Found lyrics": @"Låttext hittades",
+            @"The redesigned look will be used when Spotify restarts.": @"Den nya designen används när Spotify startas om.",
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valt Spotify-tema används när Spotify startas om."
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -457,7 +465,11 @@ NSString *SGT(NSString *english) {
             @"Show source": @"Quelle anzeigen",
             @"Simulate word timing": @"Wort-Timing simulieren",
             @"Text sizes": @"Textgrößen",
-            @"Translation language": @"Übersetzungssprache"
+            @"Translation language": @"Übersetzungssprache",
+            @"sources": @"Quellen",
+            @"Found lyrics": @"Songtext gefunden",
+            @"The redesigned look will be used when Spotify restarts.": @"Das neue Design wird nach einem Neustart von Spotify aktiviert.",
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Das gewählte Spotify-Design wird nach einem Neustart aktiviert."
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -591,7 +603,11 @@ NSString *SGT(NSString *english) {
             @"Show source": @"Mostrar fuente",
             @"Simulate word timing": @"Simular tiempo por palabra",
             @"Text sizes": @"Tamaños de texto",
-            @"Translation language": @"Idioma de traducción"
+            @"Translation language": @"Idioma de traducción",
+            @"sources": @"fuentes",
+            @"Found lyrics": @"Letras encontradas",
+            @"The redesigned look will be used when Spotify restarts.": @"El nuevo diseño se aplicará al reiniciar Spotify.",
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"El tema de Spotify elegido se aplicará al reiniciar."
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -725,7 +741,11 @@ NSString *SGT(NSString *english) {
             @"Show source": @"Afficher la source",
             @"Simulate word timing": @"Simuler les mots synchronisés",
             @"Text sizes": @"Tailles du texte",
-            @"Translation language": @"Langue de traduction"
+            @"Translation language": @"Langue de traduction",
+            @"sources": @"sources",
+            @"Found lyrics": @"Paroles trouvées",
+            @"The redesigned look will be used when Spotify restarts.": @"La nouvelle interface sera activée après le redémarrage de Spotify.",
+            @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Le thème Spotify choisi sera activé après le redémarrage."
         }
         };
     });
