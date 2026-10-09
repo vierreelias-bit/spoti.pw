@@ -445,8 +445,14 @@ static void syncBar(UIView *stockBar) {
         UIImage *blank = noSelectionIndicator();
         UITabBarAppearance *appearance = [bar.standardAppearance copy];
         if (!appearance) appearance = [UITabBarAppearance new];
-        appearance.selectionIndicatorImage = blank;
-        appearance.selectionIndicatorTintColor = UIColor.clearColor;
+        // These UITabBarAppearance selectors are new on recent iOS; call
+        // them conditionally so the Ubuntu iOS 16.5 SDK can still compile.
+        SEL setImage = NSSelectorFromString(@"setSelectionIndicatorImage:");
+        SEL setTint = NSSelectorFromString(@"setSelectionIndicatorTintColor:");
+        if ([appearance respondsToSelector:setImage])
+            ((void (*)(id, SEL, UIImage *))objc_msgSend)(appearance, setImage, blank);
+        if ([appearance respondsToSelector:setTint])
+            ((void (*)(id, SEL, UIColor *))objc_msgSend)(appearance, setTint, UIColor.clearColor);
         bar.standardAppearance = appearance;
         bar.scrollEdgeAppearance = [appearance copy];
         bar.selectionIndicatorImage = blank;
