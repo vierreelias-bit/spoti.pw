@@ -30,6 +30,7 @@ static CGFloat sg_room, sg_glassHeight;   // see "room for the glass bar"
 @property (nonatomic) BOOL holding;
 @property (nonatomic) BOOL sliding;
 @property (nonatomic, strong) UIVisualEffectView *lens;
+@property (nonatomic, strong) UIView *lensGlow;
 @property (nonatomic, strong) UIImageView *lensGlyph;
 @end
 
@@ -219,6 +220,7 @@ static void forwardTap(UIView *item) {
         [lens.contentView addSubview:icon];
 
         self.lens = lens;
+        self.lensGlow = glow;
         self.lensGlyph = icon;
         [self addSubview:lens];
     }
@@ -227,8 +229,7 @@ static void forwardTap(UIView *item) {
     [self bringSubviewToFront:lens];
     UIColor *accent = SGRAccent();
     lens.layer.borderColor = [accent colorWithAlphaComponent:0.65].CGColor;
-    UIView *glow = lens.contentView.subviews.firstObject;
-    glow.backgroundColor = [accent colorWithAlphaComponent:0.18];
+    self.lensGlow.backgroundColor = [accent colorWithAlphaComponent:0.18];
 
     // If the system requests less transparency, keep a clear solid fallback.
     BOOL solid = SGRReduceTransparency();
