@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev12`  
+**Development package:** `30.0.0~dev13`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -10,6 +10,24 @@ which does not grant redistribution/derivative-work permission.
 Any similar features must be independently implemented from functional
 requirements or used with separately obtained permission. No copyrighted
 0.50.0 source has been transplanted into this branch.
+
+## v30 dev13 changes
+
+- [x] Add a **privacy opt-in automatic album match** for the playing artist
+      and album using Apple's documented public iTunes Search API.
+      It starts only when "Find album automatically" is switched on.
+- [x] Show a status (not searched / searching / found / no match) and open
+      the matching album using Apple's official album link.
+- [x] Search is rate-limited by a local in-memory cache for each album.
+      Strict artist/album matching avoids linking to an unrelated release.
+- [x] Translate the new controls into Finnish and their key labels/statuses
+      into Swedish, German, Spanish and French.
+- [ ] **Apple Music video artwork is NOT automatically downloaded or played
+      inside Spotify.** The public catalog result supplies album metadata
+      and a link, not permission to reuse Apple's animated video assets.
+      The existing import of user-owned/authorized video remains available.
+- [ ] Test the public Apple catalog API from the target iPhone and complete
+      an Ubuntu Theos build. No device/build success verified for dev13.
 
 ## v30 dev12 changes
 
