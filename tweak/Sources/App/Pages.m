@@ -100,7 +100,12 @@ static SGModRow *themePickerRow(void) {
                     style:UIAlertActionStyleDefault
                     handler:^(UIAlertAction *action) {
                         applyTheme(i);
-                        offerRestart(i >= 2);
+                        // Wait until the action sheet finishes dismissing before
+                        // showing the restart confirmation over Spotify.
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)),
+                                       dispatch_get_main_queue(), ^{
+                            offerRestart(i >= 2);
+                        });
                     }]];
             }
             [sheet addAction:[UIAlertAction actionWithTitle:SGT(@"Cancel")
