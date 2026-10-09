@@ -29,6 +29,12 @@
 // still; the row is on the Now playing page (Redesigned/NowPlayingBar/NowPlayingBarSettings.m).
 #define SGRKeyPlayerMotion @"spotifyglass.redesign.player.movingBackground"
 
+// v30 experimental lyric preview between the cover and title. No text is
+// bundled; it uses Spotify's timed lyrics or user-enabled lyric sources.
+#define SGRKeyInlineLyrics @"spotifyglass.redesign.player.inlineLyrics"
+void SGRInlineLyricsRelayout(UIView *host);
+void SGRInlineLyricsHide(UIView *host);
+
 // The field behind the player, nil until the player has laid out once (PlayerField.x).
 SGRArtworkField *SGRPlayerField(void);
 
