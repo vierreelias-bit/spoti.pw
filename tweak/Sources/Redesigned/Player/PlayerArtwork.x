@@ -220,6 +220,7 @@ static SGRPlayerArtworkWatcher *sg_artworkWatcher;
     if (!SGRedesignedUI()) return;
     %init;
     SGRStartVideoArtworkObservers();
+    SGRAppleCatalogStart();
     sg_tilts = [NSHashTable weakObjectsHashTable];
     sg_covers = [NSMapTable weakToWeakObjectsMapTable];
     sg_artworkWatcher = [SGRPlayerArtworkWatcher new];
