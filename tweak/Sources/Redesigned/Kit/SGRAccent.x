@@ -185,9 +185,9 @@ static id swappedValue(id value) {
 }
 %end
 
-// Keep the accent lively while each image's dominant colour is analysed on a
-// serial background queue by the existing SGRPalette engine. Skip near-grey
-// covers to preserve contrast and keep the last distinct colour.
+// Let the existing palette engine analyse the artwork off the main thread.
+// Monochrome covers get a neutral silver accent rather than incorrectly
+// keeping the previous song's bright colour.
 static void updateSongAccent(UIImage *image) {
     if (!image || !sg_songTheme) return;
     NSUInteger generation = ++sg_songGeneration;
@@ -196,11 +196,12 @@ static void updateSongAccent(UIImage *image) {
         if (!palette || generation != sg_songGeneration) return;
         UIColor *source = palette.flowColors.lastObject ?: palette.edgeColor;
         CGFloat h = 0, s = 0, v = 0, a = 0;
-        if (![source getHue:&h saturation:&s brightness:&v alpha:&a]) return;
-        if (s < 0.12) return;
+        BOOL hasHue = [source getHue:&h saturation:&s brightness:&v alpha:&a];
         // Bright enough for a clear accent over Spotify's dark player.
-        UIColor *accent = [UIColor colorWithHue:h saturation:MIN(0.91, MAX(0.55, s))
-                                        brightness:0.94 alpha:1];
+        UIColor *accent = (!hasHue || s < 0.12)
+            ? [UIColor colorWithWhite:0.78 alpha:1.0]
+            : [UIColor colorWithHue:h saturation:MIN(0.91, MAX(0.55, s))
+                         brightness:0.94 alpha:1];
         CGFloat red = 0, green = 0, blue = 0;
         [accent getRed:&red green:&green blue:&blue alpha:&a];
         uint32_t rgb = ((uint32_t)lround(red * 255) << 16) |
