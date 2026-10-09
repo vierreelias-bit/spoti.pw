@@ -132,7 +132,14 @@ NSString *SGT(NSString *english) {
             @"Audio": @"Ääni",
             @"Current language": @"Nykyinen kieli",
             @"Automatic": @"Automaattinen",
-            @"Native look": @"Perinteinen ulkoasu"
+            @"Native look": @"Perinteinen ulkoasu",
+            @"Artists": @"Artistit",
+            @"Sections": @"Osiot",
+            @"Hide music videos": @"Piilota musiikkivideot",
+            @"Remove video shelves from redesigned artist pages.": @"Piilota musiikkivideoiden osiot uudistetuilta artistisivuilta.",
+            @"Extra sections": @"Lisäosiot",
+            @"Show extra album sections": @"Näytä albumin lisäosiot",
+            @"Show album recommendations, videos and other sections below the tracks.": @"Näytä suositukset, musiikkivideot ja muut osiot kappalelistan alla."
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -222,7 +229,14 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Lägg till i biblioteket",
             @"Tab bar and animated artwork": @"Flikfält och animerade omslag",
             @"0.50-style player and lyrics": @"0.50-liknande spelare och låttexter",
-            @"Overridden by another setting": @"Åsidosatt av en annan inställning"
+            @"Overridden by another setting": @"Åsidosatt av en annan inställning",
+            @"Artists": @"Artister",
+            @"Sections": @"Avsnitt",
+            @"Hide music videos": @"Dölj musikvideor",
+            @"Remove video shelves from redesigned artist pages.": @"Dölj musikvideor från omdesignade artistsidor.",
+            @"Extra sections": @"Extra avsnitt",
+            @"Show extra album sections": @"Visa extra albumavsnitt",
+            @"Show album recommendations, videos and other sections below the tracks.": @"Visa rekommendationer, videor och andra avsnitt under låtarna."
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -312,7 +326,14 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Zur Bibliothek hinzufügen",
             @"Tab bar and animated artwork": @"Tab-Leiste und animierte Cover",
             @"0.50-style player and lyrics": @"0.50-Player und Songtexte",
-            @"Overridden by another setting": @"Durch andere Einstellung überschrieben"
+            @"Overridden by another setting": @"Durch andere Einstellung überschrieben",
+            @"Artists": @"Künstler",
+            @"Sections": @"Abschnitte",
+            @"Hide music videos": @"Musikvideos ausblenden",
+            @"Remove video shelves from redesigned artist pages.": @"Musikvideos auf neu gestalteten Künstlerseiten ausblenden.",
+            @"Extra sections": @"Weitere Abschnitte",
+            @"Show extra album sections": @"Weitere Albumabschnitte anzeigen",
+            @"Show album recommendations, videos and other sections below the tracks.": @"Empfehlungen, Videos und weitere Abschnitte unter den Titeln anzeigen."
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -402,7 +423,14 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Añadir a la biblioteca",
             @"Tab bar and animated artwork": @"Pestañas y portadas animadas",
             @"0.50-style player and lyrics": @"Reproductor y letras estilo 0.50",
-            @"Overridden by another setting": @"Anulado por otro ajuste"
+            @"Overridden by another setting": @"Anulado por otro ajuste",
+            @"Artists": @"Artistas",
+            @"Sections": @"Secciones",
+            @"Hide music videos": @"Ocultar vídeos musicales",
+            @"Remove video shelves from redesigned artist pages.": @"Ocultar los vídeos musicales en las páginas rediseñadas de artistas.",
+            @"Extra sections": @"Secciones adicionales",
+            @"Show extra album sections": @"Mostrar más secciones del álbum",
+            @"Show album recommendations, videos and other sections below the tracks.": @"Mostrar recomendaciones, vídeos y otras secciones debajo de las canciones."
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -492,7 +520,14 @@ NSString *SGT(NSString *english) {
             @"Add to library": @"Ajouter à la bibliothèque",
             @"Tab bar and animated artwork": @"Onglets et pochettes animées",
             @"0.50-style player and lyrics": @"Lecteur et paroles style 0.50",
-            @"Overridden by another setting": @"Remplacé par un autre réglage"
+            @"Overridden by another setting": @"Remplacé par un autre réglage",
+            @"Artists": @"Artistes",
+            @"Sections": @"Sections",
+            @"Hide music videos": @"Masquer les clips musicaux",
+            @"Remove video shelves from redesigned artist pages.": @"Masquer les clips sur les pages d'artistes repensées.",
+            @"Extra sections": @"Sections supplémentaires",
+            @"Show extra album sections": @"Afficher les autres sections de l'album",
+            @"Show album recommendations, videos and other sections below the tracks.": @"Afficher les recommandations, vidéos et autres sections sous les titres."
         }
         };
     });
