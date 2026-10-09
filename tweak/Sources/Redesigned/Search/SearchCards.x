@@ -110,15 +110,20 @@ static SGRSearchCardParts *partsIn(UIView *box, UIView *content) {
         SGRSearchCardPlate *plate = [SGRSearchCardPlate new];
         plate.userInteractionEnabled = NO;
         plate.accessibilityElementsHidden = YES;
-        plate.layer.zPosition = -2;
+        // A negative zPosition can put the gradient behind the card's
+        // own opaque backing layer: the colour vanishes on device.
+        // The colour must remain a normal subview beneath the labels/images.
         CAGradientLayer *gradient = (CAGradientLayer *)plate.layer;
         gradient.startPoint = CGPointMake(0, 0);
         gradient.endPoint = CGPointMake(1, 1);
         parts.plate = plate;
         objc_setAssociatedObject(box, &kPartsKey, parts, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-    // Behind the cover and the title whatever order Spotify keeps its own views in, by depth.
-    if (parts.plate.superview != content) [content insertSubview:parts.plate atIndex:0];
+    // Always maintain foreground order; Spotify's layout may reorder subviews.
+    // The gradient is drawn above the content's own black background, but
+    // below the category image and text.
+    if (parts.plate.superview != content || content.subviews.firstObject != parts.plate)
+        [content insertSubview:parts.plate atIndex:0];
     if (glassAllowed() && !parts.glass) {
         UIVisualEffectView *glass = [UIVisualEffectView new];
         // Dark like every glass of the redesign's, rather than by grace of the navigation stack Spotify
@@ -126,11 +131,14 @@ static SGRSearchCardParts *partsIn(UIView *box, UIView *content) {
         glass.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
         glass.userInteractionEnabled = NO;
         glass.accessibilityElementsHidden = YES;
-        glass.layer.zPosition = -1;
+        // Keep glass behind the cover and labels by subview order, not zPosition.
+        // A negative zPosition would similarly sink it below the card itself.
         parts.glass = glass;
         parts.color = nil;
     }
-    if (parts.glass && parts.glass.superview != content) [content insertSubview:parts.glass aboveSubview:parts.plate];
+    if (parts.glass && (parts.glass.superview != content ||
+                        (content.subviews.count > 1 && content.subviews[1] != parts.glass)))
+        [content insertSubview:parts.glass aboveSubview:parts.plate];
     if (parts.glass) parts.glass.hidden = !glassAllowed();
     return parts;
 }
