@@ -1,6 +1,8 @@
 #import "SGPage.h"
 #import "SGPageStyle.h"
 #import "Core/SGCore.h"
+#import "Redesigned/Kit/SGRAccent.h"
+#import "Redesigned/Kit/SGRTokens.h"
 #import <QuartzCore/QuartzCore.h>
 
 
@@ -18,7 +20,9 @@ static BOOL sg_pagesConform;
 // than a decorative image: it fits every screen size and cannot cover cells.
 @interface SGAmbientSettingsBackground : UIView
 - (instancetype)initWithColor:(UIColor *)accent;
+- (void)setAccent:(UIColor *)accent animated:(BOOL)animated;
 @end
+
 @implementation SGAmbientSettingsBackground {
     CAGradientLayer *_gradient;
 }
@@ -26,17 +30,30 @@ static BOOL sg_pagesConform;
     if (!(self = [super initWithFrame:CGRectZero])) return nil;
     self.userInteractionEnabled = NO;
     self.accessibilityElementsHidden = YES;
-    CGFloat red = 0, green = 0, blue = 0, alpha = 0;
-    [accent getRed:&red green:&green blue:&blue alpha:&alpha];
     _gradient = [CAGradientLayer layer];
-    _gradient.colors = @[
+    _gradient.locations = @[@0, @0.53, @1];
+    [self.layer addSublayer:_gradient];
+    [self setAccent:accent animated:NO];
+    return self;
+}
+- (void)setAccent:(UIColor *)accent animated:(BOOL)animated {
+    if (!accent) return;
+    CGFloat red = 0, green = 0, blue = 0, alpha = 0;
+    if (![accent getRed:&red green:&green blue:&blue alpha:&alpha]) return;
+    NSArray *colors = @[
         (id)[UIColor colorWithRed:0.014 + red * 0.16 green:0.014 + green * 0.16 blue:0.018 + blue * 0.16 alpha:1].CGColor,
         (id)[UIColor colorWithRed:0.012 + red * 0.07 green:0.012 + green * 0.07 blue:0.018 + blue * 0.07 alpha:1].CGColor,
         (id)[UIColor colorWithRed:0.008 green:0.008 blue:0.016 alpha:1].CGColor,
     ];
-    _gradient.locations = @[@0, @0.53, @1];
-    [self.layer addSublayer:_gradient];
-    return self;
+    if (animated && _gradient.colors && !SGRReduceMotion()) {
+        CABasicAnimation *fade = [CABasicAnimation animationWithKeyPath:@"colors"];
+        fade.fromValue = _gradient.presentationLayer
+            ? ((CAGradientLayer *)_gradient.presentationLayer).colors : _gradient.colors;
+        fade.toValue = colors;
+        fade.duration = SGRCrossfade;
+        [_gradient addAnimation:fade forKey:@"elispot.songThemeColors"];
+    }
+    _gradient.colors = colors;
 }
 - (void)layoutSubviews {
     [super layoutSubviews];
@@ -51,16 +68,38 @@ static BOOL sg_pagesConform;
     [super viewDidLoad];
     self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
     self.tableView.backgroundColor = SGPageBackground();
-    NSString *accentKey = SGRedesignedUI() ? @"spotifyglass.redesign.accent" : @"spotifyglass.accent";
+    BOOL followSong = SGRedesignedUI() && SGFlag(SGRKeySongTheme, NO);
+    NSString *accentKey = SGRedesignedUI() ? SGRKeyAccent : @"spotifyglass.accent";
     NSInteger rgb = SGInt(accentKey, -1);
-    if (rgb >= 0 && rgb <= 0xFFFFFF) {
-        UIColor *accent = [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
-                                         green:((rgb >> 8) & 255) / 255.0
-                                          blue:(rgb & 255) / 255.0 alpha:1];
-        self.tableView.backgroundView = [[SGAmbientSettingsBackground alloc] initWithColor:accent];
+    if (followSong || (rgb >= 0 && rgb <= 0xFFFFFF)) {
+        UIColor *accent = followSong ? SGRAccent() :
+            [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
+                            green:((rgb >> 8) & 255) / 255.0
+                             blue:(rgb & 255) / 255.0 alpha:1];
+        self.tableView.backgroundView =
+            [[SGAmbientSettingsBackground alloc] initWithColor:accent];
+    }
+    if (followSong) {
+        [NSNotificationCenter.defaultCenter addObserver:self
+            selector:@selector(elispotSongThemeChanged:)
+            name:@"elispot.songAccentChanged" object:nil];
     }
     self.tableView.separatorColor = [UIColor colorWithWhite:1 alpha:0.1];
     self.tableView.sectionHeaderTopPadding = 0;
+}
+
+// Keep EliSpot's own Settings backgrounds in sync with the song; reuses
+// the same gradient, so table cells, scrolling and taps remain untouched.
+- (void)elispotSongThemeChanged:(NSNotification *)notification {
+    SGAmbientSettingsBackground *background =
+        (SGAmbientSettingsBackground *)self.tableView.backgroundView;
+    if ([background isKindOfClass:SGAmbientSettingsBackground.class])
+        [background setAccent:SGRAccent() animated:YES];
+}
+
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self
+        name:@"elispot.songAccentChanged" object:nil];
 }
 
 - (NSString *)spt_pageIdentifier {
