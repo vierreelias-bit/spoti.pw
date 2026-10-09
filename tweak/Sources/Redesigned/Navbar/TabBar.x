@@ -411,7 +411,18 @@ static void syncBar(UIView *stockBar) {
     CGFloat height = MAX(bounds.size.height, glassHeight(bar, stockBar));
     CGRect frame = CGRectMake(0, CGRectGetMaxY(bounds) - height, width, height);
     if (!CGRectEqualToRect(host.frame, frame)) host.frame = frame;
-    if (!CGRectEqualToRect(bar.frame, host.bounds)) bar.frame = host.bounds;
+    // EliSpot v30: keep Spotify's safe-area/height calculations, but inset
+    // the actual tab bar to form a floating rounded capsule instead of the
+    // full-width rectangular slab. Hit targets remain on the real UITabBar.
+    CGFloat side = MIN(12.0, MAX(0, (width - 250) / 2));
+    CGRect barFrame = CGRectMake(side, 0, width - 2 * side, height);
+    if (!CGRectEqualToRect(bar.frame, barFrame)) bar.frame = barFrame;
+    CGFloat capsuleRadius = MIN(32.0, height / 2);
+    bar.layer.cornerRadius = capsuleRadius;
+    bar.layer.cornerCurve = kCACornerCurveContinuous;
+    bar.layer.masksToBounds = YES;
+    bar.layer.borderColor = [SGRAccent() colorWithAlphaComponent:0.36].CGColor;
+    bar.layer.borderWidth = 0.7;
     if (host.superview != stockBar) [stockBar addSubview:host];
     else if (stockBar.subviews.lastObject != host) [stockBar bringSubviewToFront:host];
     logBarOnce(bar);
