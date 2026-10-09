@@ -2,6 +2,7 @@
 #import "Core/SGCore.h"
 #import "Settings/SGModPage.h"
 #import "Album.h"
+#import "Redesigned/Kit/SGRArtworkMotion.h"
 
 UIViewController *SGRAlbumSettingsPage(void) {
     return [[SGModPage alloc] initWithTitle:@"Albums"
