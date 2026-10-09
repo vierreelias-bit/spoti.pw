@@ -24,7 +24,8 @@ ifeq ($(wildcard Sources/Shared/Flags/SGFlagList.m),)
 spotifyglass_FILES += UbuntuCompat/EmptyFlagList.m
 endif
 else
-spotifyglass_FILES := $(shell find Sources -name '*.m' -o -name '*.x' -o -name '*.swift' | sort)
+spotifyglass_FILES := $(shell find Sources \( -name '*.m' -o -name '*.x' -o -name '*.swift' \) \
+    ! -path 'Sources/UbuntuCompat/*' | sort)
 endif
 
 spotifyglass_CFLAGS := -fobjc-arc -ISources -DSG_VERSION=\"$(SG_VERSION)\"
