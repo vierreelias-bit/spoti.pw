@@ -61,7 +61,8 @@ static NSURL *videoURL(NSString *track) {
     BOOL active = SGRedesignedUI() && SGFlag(SGRKeyVideoArtwork, NO) &&
         !SGRReduceMotion() && !NSProcessInfo.processInfo.lowPowerModeEnabled &&
         UIApplication.sharedApplication.applicationState == UIApplicationStateActive &&
-        cover.window && track && [[NSFileManager defaultManager] fileExistsAtPath:file.path];
+        cover.window && track && !SGPlayerState().isPaused &&
+        [[NSFileManager defaultManager] fileExistsAtPath:file.path];
     if (active) {
         for (UIView *view = cover; view; view = view.superview)
             if (view.hidden || view.alpha < 0.01) { active = NO; break; }
@@ -112,13 +113,16 @@ static void updateAllVideos(void) {
 
 @interface SGRVideoObserver : NSObject <SGPlayerStateObserver>
 @property (nonatomic, copy) NSString *lastTrack;
+@property (nonatomic) BOOL lastPaused;
 @end
 
 @implementation SGRVideoObserver
 - (void)playerStateDidChange:(SPTPlayerState *)state {
     NSString *track = safeTrack();
-    if ([track isEqualToString:self.lastTrack]) return;
+    BOOL paused = state.isPaused;
+    if ([track isEqualToString:self.lastTrack] && paused == self.lastPaused) return;
     self.lastTrack = [track copy];
+    self.lastPaused = paused;
     updateAllVideos();
 }
 @end
@@ -137,7 +141,18 @@ void SGRStartVideoArtworkObservers(void) {
                 UIAccessibilityReduceMotionStatusDidChangeNotification,
                 @"elispot.localAnimatedCoverChanged"]) {
         [center addObserverForName:name object:nil queue:NSOperationQueue.mainQueue
-                       usingBlock:^(NSNotification *notice) { updateAllVideos(); }];
+                       usingBlock:^(NSNotification *notice) {
+                           if ([notice.name isEqualToString:UIApplicationWillResignActiveNotification] ||
+                               [notice.name isEqualToString:@"elispot.localAnimatedCoverChanged"]) {
+                               for (UIImageView *cover in sg_videoCovers.allObjects) {
+                                   SGRLocalVideoSurface *surface =
+                                       objc_getAssociatedObject(cover, &kVideoSurfaceKey);
+                                   [surface stop];
+                               }
+                           }
+                           if (![notice.name isEqualToString:UIApplicationWillResignActiveNotification])
+                               updateAllVideos();
+                       }];
     }
 }
 
@@ -167,7 +182,7 @@ static void showVideoNotice(NSString *message) {
     BOOL scoped = [source startAccessingSecurityScopedResource];
     NSError *error = nil;
     NSNumber *size = nil;
-    [source getResourceValue:&size forKey:NSURLFileSizeKey error:&error];
+    [source getResourceValue:&size forKey:NSURLFileSizeKey error:nil];
     if (size.unsignedLongLongValue > 100ULL * 1024 * 1024) {
         if (scoped) [source stopAccessingSecurityScopedResource];
         showVideoNotice(@"Video is larger than 100 MB.");
