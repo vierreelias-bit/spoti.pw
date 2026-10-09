@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev2`  
+**Development package:** `30.0.0~dev3`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -24,6 +24,15 @@ requirements or used with separately obtained permission. No copyrighted
       redesigned look hid artist video shelves unconditionally.
 - [x] Add these new settings to Finnish, Swedish, German, Spanish and French
       UI dictionaries (English fallback).
+- [x] Fix the Search browse cards' gradient layer stacking so the intended
+      colored categories are no longer placed behind an opaque black card.
+- [x] Add optional slowly animated **still** artwork to album hero and player
+      cover images, switched from Albums or Player settings.
+      Honors Reduce Motion and Low Power Mode and uses no third-party clips.
+- [ ] Validate the search gradient and animated covers on an actual iPhone.
+- [ ] For genuine video covers, source and play *authorized* animated artwork;
+      the current v30 cover motion does not provide video assets.
+
 
 - [x] Add an optional, manually opened **What's new** page; no automatic prompts.
 - [x] Add v30-only language settings: System default, English, Finnish,
