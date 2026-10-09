@@ -49,33 +49,70 @@ static SGModRow *unavailableRow(void) {
     return SGWithSymbol(row, @"sparkles");
 }
 
-// A one-tap preset composed from existing EliSpot settings. Never changes
-// Spotify's subscription, artwork rights, or the user's account settings.
-static SGModRow *appleMusicStyleRow(void) {
-    SGModRow *row = SGStatActionRow(@"Apple Music-inspired look",
-        @"Use the redesigned player, red controls, motion field and animated still covers.",
-        ^NSString *{
-            BOOL active = SGFlag(SGKeyRedesign, NO) &&
-                          SGInt(SGRKeyAccent, -1) == 0xFA233B &&
-                          SGFlag(SGRKeyArtworkMotion, NO) &&
-                          SGFlag(SGRKeyPlayerMotion, YES);
-            return active ? @"Active" : @"Apply";
-        }, ^{
-            UIAlertController *alert = [UIAlertController
-                alertControllerWithTitle:SGT(@"Apple Music-inspired look")
-                message:SGT(@"Enable redesigned UI, red accents, moving background and animated still covers? Restart Spotify to apply. This is not original Apple Music video artwork.")
-                preferredStyle:UIAlertControllerStyleAlert];
-            [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Cancel") style:UIAlertActionStyleCancel handler:nil]];
-            [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Apply") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-                SGSetRedesignedUI(YES);
-                SGSetInt(SGRKeyAccent, 0xFA233B);
-                SGSetEnabled(SGRKeyPlayerMotion, YES);
-                SGSetEnabled(SGRKeyArtworkMotion, YES);
-                offerRestart(YES);
-            }]];
-            [SGTopController() presentViewController:alert animated:YES completion:nil];
+// EliSpot v30: a native theme picker backed by existing preference keys.
+// No system or Spotify entitlement changes. A restart is needed because
+// redesigned-vs-native hooks are selected at process launch.
+static void applyTheme(NSInteger theme) {
+    BOOL redesign = theme >= 2 && SGRedesignAvailable();
+    SGSetRedesignedUI(redesign);
+    SGSetEnabled(SGKeyAmoled, theme != 0);
+    NSInteger accent = -1;
+    if (theme == 2) accent = 0xFA233B;       // Apple Music-inspired red
+    if (theme == 3) accent = 0x588BFF;       // Midnight blue
+    if (theme == 4) accent = 0xAD72F8;       // Violet
+    SGSetInt(SGKeyAccent, accent);
+    SGSetInt(SGRKeyAccent, accent);
+    SGSetEnabled(SGRKeyPlayerMotion, redesign);
+    SGSetEnabled(SGRKeyArtworkMotion, theme == 2);
+}
+
+static NSString *themeSummary(void) {
+    BOOL redesign = SGFlag(SGKeyRedesign, NO);
+    NSInteger accent = SGInt(redesign ? SGRKeyAccent : SGKeyAccent, -1);
+    if (redesign) {
+        if (accent == 0xFA233B) return SGT(@"Apple Music style");
+        if (accent == 0x588BFF) return SGT(@"Midnight blue");
+        if (accent == 0xAD72F8) return SGT(@"Violet");
+        return SGT(@"Custom");
+    }
+    if (accent != -1) return SGT(@"Custom");
+    return SGT(SGFlag(SGKeyAmoled, NO) ? @"AMOLED black" : @"Spotify default");
+}
+
+static SGModRow *themePickerRow(void) {
+    SGModRow *row = SGStatActionRow(@"Theme",
+        @"Choose a Spotify, AMOLED, Apple Music-inspired or coloured look.",
+        ^NSString *{ return themeSummary(); }, ^{
+            UIViewController *top = SGTopController();
+            if (!top) return;
+            UIAlertController *sheet = [UIAlertController alertControllerWithTitle:SGT(@"Theme")
+                message:SGT(@"Pick a look. Use Accent colour for a custom colour. Changes require a Spotify restart.")
+                preferredStyle:UIAlertControllerStyleActionSheet];
+            NSArray<NSString *> *names = @[@"Spotify default", @"AMOLED black",
+                                          @"Apple Music style", @"Midnight blue", @"Violet"];
+            for (NSInteger i = 0; i < (NSInteger)names.count; i++) {
+                // Liquid Glass requires iOS 26+, so never offer unsupported
+                // themes that would silently fail on an older device.
+                if (i >= 2 && !SGRedesignAvailable()) continue;
+                [sheet addAction:[UIAlertAction actionWithTitle:SGT(names[(NSUInteger)i])
+                    style:UIAlertActionStyleDefault
+                    handler:^(UIAlertAction *action) {
+                        applyTheme(i);
+                        offerRestart(i >= 2);
+                    }]];
+            }
+            [sheet addAction:[UIAlertAction actionWithTitle:SGT(@"Cancel")
+                style:UIAlertActionStyleCancel handler:nil]];
+            if (sheet.popoverPresentationController) {
+                sheet.popoverPresentationController.sourceView = top.view;
+                sheet.popoverPresentationController.sourceRect =
+                    CGRectMake(CGRectGetMidX(top.view.bounds),
+                               CGRectGetMidY(top.view.bounds), 0, 0);
+                sheet.popoverPresentationController.permittedArrowDirections = 0;
+            }
+            [top presentViewController:sheet animated:YES completion:nil];
         });
-    return SGWithSymbol(row, @"music.note");
+    return SGWithSymbol(row, @"paintpalette.fill");
 }
 
 SGModSection *SGAppearanceSection(void) {
@@ -91,7 +128,7 @@ SGModSection *SGAppearanceSection(void) {
         SGSetRedesignedUI(on);
         offerRestart(on);
     };
-    NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObjects:SGWithSymbol(redesign, @"sparkles"), appleMusicStyleRow(), nil];
+    NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObjects:SGWithSymbol(redesign, @"sparkles"), themePickerRow(), nil];
     [rows addObjectsFromArray:SGRedesignedUIStored() ? SGRAppearanceRows() : SGNativeAppearanceRows()];
     return SGNotedSection(@"Appearance", rows, @"Changes apply after you restart Spotify.");
 }
