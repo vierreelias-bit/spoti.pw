@@ -11,6 +11,11 @@ UIViewController *SGRNowPlayingBarSettingsPage(void) {
         SGSection(nil, @[
             SGHideRow(@"Hide the device button", nil, SGRHideBarConnect),
         ]),
+        SGSection(@"Lyrics preview", @[
+            SGOptionRow(@"Inline lyrics (experimental)",
+                        @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.",
+                        SGRKeyInlineLyrics),
+        ]),
         SGSection(nil, @[
             SGSwitchRow(@"Moving background", nil, SGRKeyPlayerMotion),
             SGOptionRow(@"Animated cover motion",
