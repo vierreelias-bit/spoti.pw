@@ -35,3 +35,4 @@
 #import "SGRAccent.h"
 #import "SGRArtworkMotion.h"
 #import "SGRAnimatedArtwork.h"
+#import "SGRAppleCatalogLookup.h"
