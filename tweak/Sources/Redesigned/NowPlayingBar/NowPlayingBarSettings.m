@@ -4,6 +4,7 @@
 #import "Settings/SGModPage.h"
 #import "NowPlayingBar.h"
 #import "Redesigned/Player/Player.h"
+#import "Redesigned/Kit/SGRArtworkMotion.h"
 
 UIViewController *SGRNowPlayingBarSettingsPage(void) {
     return [[SGModPage alloc] initWithTitle:@"Now playing" intro:SGRestartNote sections:@[
