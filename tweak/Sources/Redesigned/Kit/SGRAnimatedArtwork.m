@@ -22,11 +22,20 @@ static NSString *safeTrack(void) {
     return [track rangeOfCharacterFromSet:invalid].location == NSNotFound ? track : nil;
 }
 
-static NSURL *videoURL(NSString *track) {
+static NSURL *videoURLWithExtension(NSString *track, NSString *extension) {
     if (!track) return nil;
     NSString *folder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/EliSpot/AnimatedArtwork"];
     return [NSURL fileURLWithPath:[folder stringByAppendingPathComponent:
-        [track stringByAppendingPathExtension:@"mp4"]]];
+        [track stringByAppendingPathExtension:extension]]];
+}
+
+static NSURL *videoURL(NSString *track) {
+    if (!track) return nil;
+    for (NSString *ext in @[@"mp4", @"mov", @"m4v"]) {
+        NSURL *url = videoURLWithExtension(track, ext);
+        if ([[NSFileManager defaultManager] fileExistsAtPath:url.path]) return url;
+    }
+    return nil;
 }
 
 @interface SGRLocalVideoSurface : NSObject
@@ -172,13 +181,14 @@ static void showVideoNotice(NSString *message) {
 @implementation SGRVideoImporter
 - (void)documentPicker:(UIDocumentPickerViewController *)controller
     didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
-    NSURL *source = urls.firstObject, *destination = videoURL(self.selectedTrack);
-    if (!source || !destination) return;
+    NSURL *source = urls.firstObject;
+    if (!source || !self.selectedTrack) return;
     NSString *extension = source.pathExtension.lowercaseString;
     if (![@[@"mp4", @"mov", @"m4v"] containsObject:extension]) {
         showVideoNotice(@"Choose an MP4, MOV or M4V video that you may use.");
         return;
     }
+    NSURL *destination = videoURLWithExtension(self.selectedTrack, extension);
     BOOL scoped = [source startAccessingSecurityScopedResource];
     NSError *error = nil;
     NSNumber *size = nil;
@@ -193,7 +203,9 @@ static void showVideoNotice(NSString *message) {
     if (!error) {
         // Document-picker returns a user-approved local copy, not a protected
         // Apple Music URL. Store it privately under this Spotify installation.
-        [[NSFileManager defaultManager] removeItemAtURL:destination error:nil];
+        for (NSString *ext in @[@"mp4", @"mov", @"m4v"])
+            [[NSFileManager defaultManager] removeItemAtURL:
+                videoURLWithExtension(self.selectedTrack, ext) error:nil];
         [[NSFileManager defaultManager] copyItemAtURL:source toURL:destination error:&error];
     }
     if (scoped) [source stopAccessingSecurityScopedResource];
