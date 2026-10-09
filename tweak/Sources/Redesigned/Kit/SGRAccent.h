@@ -3,6 +3,7 @@
 #import <UIKit/UIKit.h>
 
 #define SGRKeyAccent @"spotifyglass.redesign.accent"   // 0xRRGGBB
+#define SGRKeySongTheme @"spotifyglass.redesign.songColorTheme" // accent follows current artwork
 
 UIColor *SGRAccentColor(void);   // nil while Spotify's own green is kept
 NSString *SGRAccentLabel(void);  // "#RRGGBB", or the name of Spotify's own
