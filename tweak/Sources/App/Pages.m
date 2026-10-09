@@ -28,11 +28,13 @@ void SGSetRedesignedUI(BOOL on) {
 // The whole look changes hands at launch, so the switch asks for the restart straight away rather than
 // leaving Spotify half in the old look.
 static void offerRestart(BOOL on) {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Restart Spotify"
-        message:on ? @"The redesign takes over when Spotify starts again. Spotify closes now; open it again to see it." : @"Spotify's own look comes back when Spotify starts again. Spotify closes now; open it again to see it."
-        preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Later" style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Restart now" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { SGRestartSpotify(); }]];
+    NSString *message = on
+        ? @"The redesigned look will be used when Spotify restarts."
+        : @"Your selected Spotify-style theme will be used when Spotify restarts.";
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(@"Restart Spotify")
+        message:SGT(message) preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Later") style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:SGT(@"Restart now") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { SGRestartSpotify(); }]];
     [SGTopController() presentViewController:alert animated:YES completion:nil];
 }
 
