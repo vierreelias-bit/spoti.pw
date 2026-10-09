@@ -17,6 +17,7 @@
 #import "Headers/SPTEncoreIconView.h"
 #import <objc/message.h>
 #import <math.h>
+#import <QuartzCore/QuartzCore.h>
 
 static char kBarKey, kHostKey;
 static __weak UIView *sg_stockBar;
@@ -32,6 +33,8 @@ static CGFloat sg_room, sg_glassHeight;   // see "room for the glass bar"
 @property (nonatomic, strong) UIVisualEffectView *lens;
 @property (nonatomic, strong) UIView *lensGlow;
 @property (nonatomic, strong) UIImageView *lensGlyph;
+@property (nonatomic, strong) CAGradientLayer *lensRim;
+@property (nonatomic, strong) CAShapeLayer *lensRimMask;
 @end
 
 static void syncBar(UIView *stockBar);
@@ -185,107 +188,142 @@ static void forwardTap(UIView *item) {
 
 #pragma mark - the system bar
 
-@implementation SGRSystemTabBar
-
-// Find the top of the real tab caption, including Dynamic Type changes.
-// The magnifying lens must never overlap the caption: it should look like
-// a small glass icon highlight, not a floating button over its label.
-- (CGFloat)captionTopForItem:(UITabBarItem *)item {
-    if (!item.title.length) return CGFLOAT_MAX;
-    __block CGFloat top = CGFLOAT_MAX;
-    SGForEachView(self, ^(UIView *view) {
-        if (self.lens && (view == self.lens || [view isDescendantOfView:self.lens])) return;
-        if (![view isKindOfClass:UILabel.class] || view.hidden || view.alpha < 0.05) return;
-        UILabel *label = (UILabel *)view;
-        if (![label.text isEqualToString:item.title]) return;
-        CGFloat candidate = CGRectGetMinY([view convertRect:view.bounds toView:self]);
-        if (candidate > 12 && candidate < CGRectGetHeight(self.bounds))
-            top = MIN(top, candidate);
-    });
-    return top;
+// iOS 26's clear UIGlassEffect refracts actual artwork behind the control,
+// as in the user's reference. Keep it runtime-only for the Ubuntu iOS 16 SDK.
+static UIVisualEffect *elispotLensEffect(void) {
+    Class glassClass = NSClassFromString(@"UIGlassEffect");
+    SEL factory = NSSelectorFromString(@"effectWithStyle:");
+    if (@available(iOS 26.0, *)) {
+        if (glassClass && [glassClass respondsToSelector:factory]) {
+            id (*create)(id, SEL, NSInteger) = (void *)[glassClass methodForSelector:factory];
+            UIVisualEffect *effect = create(glassClass, factory, 1); // clear glass
+            if (effect) return effect;
+        }
+    }
+    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
 }
 
-// v30: a real, non-interactive glass magnifier over only the selected icon.
-// The stock tab labels remain completely outside the lens. UIKit owns the
-// actual buttons and all navigation; only a decorative view moves here.
+@implementation SGRSystemTabBar
+
+// Larger Apple-style glass orb; it belongs to the unclipped host so it can
+// hover above the pill. It does not receive touches, and Spotify retains all
+// normal tab buttons. The chosen tab is also enlarged within the orb.
 - (void)moveLensToIndex:(NSUInteger)index x:(CGFloat)x animated:(BOOL)animated {
     NSUInteger count = MIN(self.items.count, self.sources.count);
-    CGFloat width = CGRectGetWidth(self.bounds);
-    if (!count || index >= count || width < 60) {
+    CGFloat width = CGRectGetWidth(self.bounds), height = CGRectGetHeight(self.bounds);
+    UIView *host = self.superview;
+    if (!host || !count || index >= count || width < 130 || height < 45) {
         self.lens.hidden = YES;
         return;
     }
     if (!self.lens) {
-        UIVisualEffectView *lens = [[UIVisualEffectView alloc]
-            initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark]];
+        UIVisualEffectView *lens = [[UIVisualEffectView alloc] initWithEffect:elispotLensEffect()];
         lens.userInteractionEnabled = NO;
         lens.accessibilityElementsHidden = YES;
-        lens.layer.cornerRadius = 17;
+        lens.frame = CGRectMake(0, 0, 80, 80);
+        lens.layer.cornerRadius = 40;
         lens.layer.cornerCurve = kCACornerCurveContinuous;
         lens.layer.masksToBounds = YES;
-        lens.layer.borderWidth = 0.65;
-        lens.frame = CGRectMake(0, 0, 34, 34);
-        lens.alpha = 0.82; // let the underlying glass and tint show through
+        lens.layer.borderWidth = 0.5;
+        lens.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.34].CGColor;
 
         UIView *glow = [[UIView alloc] initWithFrame:lens.bounds];
         glow.userInteractionEnabled = NO;
         glow.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         [lens.contentView addSubview:glow];
 
-        UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(4, 4, 26, 26)];
+        UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(24, 22, 32, 32)];
         icon.contentMode = UIViewContentModeScaleAspectFit;
         icon.tintColor = UIColor.whiteColor;
         icon.userInteractionEnabled = NO;
         [lens.contentView addSubview:icon];
 
+        // Thin chromatic glass rim (gradient is masked to the circle outline).
+        CAGradientLayer *rim = [CAGradientLayer layer];
+        rim.colors = @[
+            (id)[UIColor colorWithRed:0.30 green:0.95 blue:0.90 alpha:0.75].CGColor,
+            (id)[UIColor colorWithRed:0.95 green:0.47 blue:0.88 alpha:0.72].CGColor,
+            (id)[UIColor colorWithRed:0.45 green:0.70 blue:1 alpha:0.80].CGColor,
+            (id)[UIColor colorWithRed:1 green:0.88 blue:0.58 alpha:0.70].CGColor,
+        ];
+        rim.startPoint = CGPointMake(0, 0);
+        rim.endPoint = CGPointMake(1, 1);
+        CAShapeLayer *outline = [CAShapeLayer layer];
+        outline.fillColor = UIColor.clearColor.CGColor;
+        outline.strokeColor = UIColor.whiteColor.CGColor;
+        outline.lineWidth = 1.6;
+        rim.mask = outline;
+        [lens.layer addSublayer:rim];
+
         self.lens = lens;
         self.lensGlow = glow;
         self.lensGlyph = icon;
-        [self addSubview:lens];
+        self.lensRim = rim;
+        self.lensRimMask = outline;
     }
     UIVisualEffectView *lens = self.lens;
+    if (lens.superview != host) [host addSubview:lens];
+    [host bringSubviewToFront:lens];
     lens.hidden = NO;
-    [self bringSubviewToFront:lens];
-    UIColor *accent = SGRAccent();
-    lens.layer.borderColor = [accent colorWithAlphaComponent:0.36].CGColor;
-    self.lensGlow.backgroundColor = [accent colorWithAlphaComponent:0.10];
 
-    // If the system requests less transparency, keep a clear solid fallback.
     BOOL solid = SGRReduceTransparency();
+    BOOL clearGlass = !solid && NSClassFromString(@"UIGlassEffect") != Nil;
+    // Don't recreate the effect every layout pass: preserve the live
+    // refraction while the user's finger is sliding.
     if (solid && lens.effect) lens.effect = nil;
-    else if (!solid && !lens.effect)
-        lens.effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark];
-    lens.backgroundColor = solid ? [UIColor colorWithWhite:0.22 alpha:1] : UIColor.clearColor;
+    else if (!solid && !lens.effect) lens.effect = elispotLensEffect();
+    lens.backgroundColor = solid ? [UIColor colorWithWhite:0.25 alpha:1] : UIColor.clearColor;
+    lens.alpha = solid ? 1 : 0.96;
+    UIColor *accent = SGRAccent();
+    self.lensGlow.backgroundColor = [accent colorWithAlphaComponent:solid ? 0.11 : 0.055];
+    self.lensRim.hidden = solid;
+    lens.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.32].CGColor;
 
     UITabBarItem *item = self.items[index];
     UIImage *art = item.selectedImage ?: item.image;
     self.lensGlyph.image = [art imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    self.lensGlyph.tintColor = accent;
 
-    // The item title can begin close to the icon (different screen sizes and
-    // Accessibility font sizes). Shrink the lens as needed, leaving at least
-    // 5 pt of clear space above the caption. No text gets magnified/covered.
-    CGFloat captionTop = [self captionTopForItem:item];
-    CGFloat available = captionTop == CGFLOAT_MAX
-        ? 34.0 : MAX(0, captionTop - 5.0);
-    CGFloat diameter = MIN(34.0, available);
-    if (diameter < 22.0) {
-        lens.hidden = YES; // Never obscure the caption on very compact bars.
-        return;
+    // The orb follows the finger horizontally. Raise it above the selected
+    // tab's caption, so Finnish labels like "Oma kirjasto" remain readable.
+    CGFloat diameter = MIN(82.0, MAX(65.0, height * 0.94));
+    CGFloat centerX = fmax(diameter / 2, fmin(x, width - diameter / 2));
+    CGRect frame = CGRectMake(self.frame.origin.x + centerX - diameter / 2,
+                              self.frame.origin.y - diameter * 0.28,
+                              diameter, diameter);
+    CGFloat titleTop = CGFLOAT_MAX;
+    if (item.title.length) {
+        SGForEachView(self, ^(UIView *v) {
+            if (![v isKindOfClass:UILabel.class] || v.hidden || v.alpha < 0.05) return;
+            if (![((UILabel *)v).text isEqualToString:item.title]) return;
+            CGFloat y = CGRectGetMinY([v convertRect:v.bounds toView:self]);
+            if (y > 10 && y < height) titleTop = MIN(titleTop, y);
+        });
     }
-    lens.layer.cornerRadius = diameter / 2.0;
-    CGFloat inset = MAX(3.0, (diameter - 26.0) / 2.0);
-    self.lensGlyph.frame = CGRectInset(CGRectMake(0, 0, diameter, diameter), inset, inset);
-    CGFloat centerX = fmax(diameter / 2.0, fmin(x, width - diameter / 2.0));
-    CGRect frame = CGRectMake(centerX - diameter / 2.0, 0.0, diameter, diameter);
+    if (titleTop != CGFLOAT_MAX) {
+        // Leave the title outside the orb, but keep as much of its volume as
+        // possible within the floating-glass safe area above the bar.
+        CGFloat lowestTop = self.frame.origin.y + titleTop - diameter - 3;
+        frame.origin.y = MIN(frame.origin.y, lowestTop);
+    }
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    lens.layer.cornerRadius = diameter / 2;
+    self.lensRim.frame = CGRectMake(0, 0, diameter, diameter);
+    self.lensRimMask.frame = self.lensRim.bounds;
+    self.lensRimMask.path = [UIBezierPath bezierPathWithOvalInRect:
+                             CGRectInset(self.lensRim.bounds, 1.1, 1.1)].CGPath;
+    self.lensGlyph.frame = CGRectMake((diameter - 34) / 2, (diameter - 34) / 2, 34, 34);
+    [CATransaction commit];
+
     if (CGRectEqualToRect(lens.frame, frame)) return;
     if (animated && !SGRReduceMotion()) {
-        [UIView animateWithDuration:0.20 delay:0
-            options:UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionAllowUserInteraction |
-                    UIViewAnimationOptionCurveEaseOut
+        [UIView animateWithDuration:0.30 delay:0 usingSpringWithDamping:0.82
+            initialSpringVelocity:0 options:UIViewAnimationOptionBeginFromCurrentState |
+                UIViewAnimationOptionAllowUserInteraction
             animations:^{ lens.frame = frame; } completion:nil];
     } else {
-        [lens.layer removeAllAnimations];
+        [lens.layer removeAnimationForKey:@"position"];
         lens.frame = frame;
     }
 }
