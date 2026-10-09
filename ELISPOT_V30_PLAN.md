@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev14`  
+**Development package:** `30.0.0~dev15`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -10,6 +10,20 @@ which does not grant redistribution/derivative-work permission.
 Any similar features must be independently implemented from functional
 requirements or used with separately obtained permission. No copyrighted
 0.50.0 source has been transplanted into this branch.
+
+## v30 dev15 changes
+
+- [x] Suppress UIKit's selected-item indicator image and tint in the
+      redesigned tab bar (including the newer runtime appearance selectors
+      while still building with iOS SDK 16.5).
+- [x] Also conceal views explicitly identified as system selection
+      indicators, without hiding the actual tab icons or titles.
+- [x] Make horizontal swipes **invisible**: do not change the active tab
+      visually while dragging, and navigate once to the nearest tab when
+      the finger is released. Normal taps still work.
+- [ ] The iOS 26+ Liquid Glass internal rendering varies by system
+      release; test on an iPhone to verify every selection capsule is
+      truly hidden. Ubuntu build has not yet been tested.
 
 ## v30 dev14 changes
 
