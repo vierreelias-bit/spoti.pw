@@ -11,6 +11,10 @@ static NSMutableDictionary<NSString *, id> *sg_albumMatches; // NSURL or NSNull
 static NSString *sg_currentAlbumKey;
 static BOOL sg_searching;
 static BOOL sg_started;
+// Cancel outdated requests and ignore their late callbacks.
+static NSURLSessionDataTask *sg_activeTask;
+static NSUInteger sg_lookupGeneration;
+static NSString *sg_pendingOpenKey;
 
 static NSString *fold(NSString *value) {
     if (![value isKindOfClass:NSString.class]) return @"";
@@ -29,8 +33,8 @@ static NSString *currentKey(NSString **artistOut, NSString **albumOut) {
     NSDictionary *metadata = track.metadata;
     NSString *artist = [metadata[@"artist_name"] isKindOfClass:NSString.class]
         ? metadata[@"artist_name"] : track.artistName;
-    NSString *album = [metadata[@"album_title"] isKindOfClass:NSString.class]
-        ? metadata[@"album_title"] : nil;
+    id albumField = metadata[@"album_title"] ?: metadata[@"album_name"];
+    NSString *album = [albumField isKindOfClass:NSString.class] ? albumField : nil;
     NSString *artistKey = fold(artist), *albumKey = fold(album);
     if (!artistKey.length || !albumKey.length) return nil;
     if (artistOut) *artistOut = artist;
@@ -60,23 +64,44 @@ static NSURL *matchingAlbum(NSDictionary *json, NSString *artist, NSString *albu
     return nil;
 }
 
+static void showLookupNotice(NSString *message) {
+    UIViewController *top = SGTopController();
+    if (!top) return;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(@"Apple Music album")
+        message:SGT(message) preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:SGT(@"OK")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [top presentViewController:alert animated:YES completion:nil];
+}
+
 static void searchAlbum(BOOL manuallyRequested) {
     NSAssert(NSThread.isMainThread, @"Apple album lookup runs on main");
     NSString *artist = nil, *album = nil;
     NSString *key = currentKey(&artist, &album);
     if (!key) {
+        if (sg_currentAlbumKey || sg_searching) {
+            ++sg_lookupGeneration;
+            [sg_activeTask cancel];
+            sg_activeTask = nil;
+        }
         sg_currentAlbumKey = nil;
+        sg_pendingOpenKey = nil;
+        sg_searching = NO;
         return;
     }
-    BOOL changed = ![sg_currentAlbumKey isEqualToString:key];
-    if (changed) {
+    if (![sg_currentAlbumKey isEqualToString:key]) {
+        ++sg_lookupGeneration;
+        [sg_activeTask cancel];
+        sg_activeTask = nil;
         sg_currentAlbumKey = [key copy];
+        sg_pendingOpenKey = nil;
         sg_searching = NO;
     }
     if (!manuallyRequested && !SGFlag(SGRKeyAppleAlbumLookup, NO)) return;
     if (!sg_albumMatches) sg_albumMatches = [NSMutableDictionary dictionary];
     if (sg_albumMatches[key] || sg_searching) return;
     sg_searching = YES;
+    NSUInteger generation = ++sg_lookupGeneration;
 
     NSString *country = [[NSLocale.currentLocale objectForKey:NSLocaleCountryCode] uppercaseString];
     if (country.length != 2) country = @"FI";
@@ -98,29 +123,64 @@ static void searchAlbum(BOOL manuallyRequested) {
             json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
         NSInteger code = [response isKindOfClass:NSHTTPURLResponse.class]
             ? ((NSHTTPURLResponse *)response).statusCode : 0;
-        NSURL *match = code == 200 && [json isKindOfClass:NSDictionary.class]
-            ? matchingAlbum(json, artist, album) : nil;
+        BOOL succeeded = code == 200 && [json isKindOfClass:NSDictionary.class];
+        NSURL *match = succeeded ? matchingAlbum(json, artist, album) : nil;
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (![sg_currentAlbumKey isEqualToString:key]) return;
+            // Never show or open an answer for the wrong song.
+            if (generation != sg_lookupGeneration ||
+                ![sg_currentAlbumKey isEqualToString:key] ||
+                ![currentKey(NULL, NULL) isEqualToString:key]) return;
             sg_searching = NO;
-            // Don't cache network failures, only real 200 search results.
-            if (code == 200 && [json isKindOfClass:NSDictionary.class])
+            sg_activeTask = nil;
+            // Cache real search results but never a failed network request.
+            if (succeeded) {
+                if (sg_albumMatches.count >= 128) [sg_albumMatches removeAllObjects];
                 sg_albumMatches[key] = match ?: NSNull.null;
+            }
+            if ([sg_pendingOpenKey isEqualToString:key]) {
+                sg_pendingOpenKey = nil;
+                if (match) {
+                    [UIApplication.sharedApplication openURL:match options:@{} completionHandler:nil];
+                } else {
+                    showLookupNotice(succeeded ? @"No matching album found in Apple Music."
+                                               : @"Apple Music search failed. Try again.");
+                }
+            }
         });
     }];
+    sg_activeTask = task;
     [task resume];
 }
 
 @interface SGRAppleCatalogObserver : NSObject <SGPlayerStateObserver>
+@property (nonatomic, copy) NSString *seenTrack;
 @property (nonatomic, copy) NSString *seenKey;
 @end
 @implementation SGRAppleCatalogObserver
 - (void)playerStateDidChange:(SPTPlayerState *)state {
+    NSString *trackURI = SGURIString(state.track.URI);
     NSString *key = currentKey(NULL, NULL);
-    if ([self.seenKey isEqualToString:key]) return;
+    if ([self.seenTrack isEqualToString:trackURI] &&
+        [self.seenKey isEqualToString:key]) return;
+    self.seenTrack = [trackURI copy];
     self.seenKey = [key copy];
-    // Let the currently playing song trigger only one opt-in lookup.
     searchAlbum(NO);
+
+    // Spotify can first report a song before its album metadata is ready.
+    // Recheck twice without contacting Apple until album data exists.
+    if (trackURI.length && !key && SGFlag(SGRKeyAppleAlbumLookup, NO)) {
+        for (NSNumber *delay in @[@1, @3]) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                           (int64_t)(delay.doubleValue * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (![SGURIString(SGPlayerState().track.URI) isEqualToString:trackURI]) return;
+                NSString *now = currentKey(NULL, NULL);
+                if (!now.length || [self.seenKey isEqualToString:now]) return;
+                self.seenKey = [now copy];
+                searchAlbum(NO);
+            });
+        }
+    }
 }
 @end
 
@@ -140,7 +200,7 @@ void SGRAppleCatalogSearchCurrent(void) {
 
 NSString *SGRAppleCatalogStatus(void) {
     NSString *key = currentKey(NULL, NULL);
-    if (!key) return SGT(@"Play a song");
+    if (!key) return SGT(SGPlayerState().track ? @"Album info unavailable" : @"Play a song");
     if (sg_searching && [sg_currentAlbumKey isEqualToString:key])
         return SGT(@"Searching Apple Music");
     id match = sg_albumMatches[key];
@@ -151,20 +211,21 @@ NSString *SGRAppleCatalogStatus(void) {
 
 void SGRAppleCatalogOpenCurrent(void) {
     NSString *key = currentKey(NULL, NULL);
-    NSURL *url = [sg_albumMatches[key] isKindOfClass:NSURL.class] ? sg_albumMatches[key] : nil;
-    if (url) {
-        [UIApplication.sharedApplication openURL:url options:@{} completionHandler:nil];
+    if (!key) {
+        showLookupNotice(SGPlayerState().track
+            ? @"Album info unavailable for this song."
+            : @"Play a song to find its album.");
         return;
     }
-    // User explicitly opened the settings row, so an on-demand search is OK
-    // even when automatic searching is disabled.
-    SGRAppleCatalogSearchCurrent();
-    UIViewController *top = SGTopController();
-    if (!top) return;
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:SGT(@"Apple Music album")
-        message:SGT(@"Looking up this album. Return here shortly to open its Apple Music page. This does not import animated video.")
-        preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:SGT(@"OK")
-        style:UIAlertActionStyleCancel handler:nil]];
-    [top presentViewController:alert animated:YES completion:nil];
+    id cached = sg_albumMatches[key];
+    if ([cached isKindOfClass:NSURL.class]) {
+        [UIApplication.sharedApplication openURL:cached options:@{} completionHandler:nil];
+        return;
+    }
+    // A manual tap can retry a prior "not found" result.
+    if (cached == NSNull.null) [sg_albumMatches removeObjectForKey:key];
+    searchAlbum(YES);
+    // If there is already a lookup running, open as soon as it finishes.
+    if (sg_searching) sg_pendingOpenKey = [key copy];
+    else showLookupNotice(@"Apple Music search failed. Try again.");
 }
