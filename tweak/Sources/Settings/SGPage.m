@@ -1,6 +1,7 @@
 #import "SGPage.h"
 #import "SGPageStyle.h"
 #import "Core/SGCore.h"
+#import <QuartzCore/QuartzCore.h>
 
 
 // Spotify's navigation controller asserts that everything on its stack is one of its own pages
