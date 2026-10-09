@@ -1,7 +1,7 @@
 # EliSpot v30 — original feature implementation plan
 
 **Branch:** `elispot-v30`  
-**Development package:** `30.0.0~dev6`  
+**Development package:** `30.0.0~dev7`  
 **Target:** user-built Ubuntu/WSL Theos `.deb` from EliSpot's own sources.
 
 This is a progress tracker, **not** a claim that spoti.pw 0.50.0 code has
@@ -52,6 +52,11 @@ requirements or used with separately obtained permission. No copyrighted
       UI dictionaries (English fallback).
 - [x] Give the redesigned mini-player a translucent theme-coloured
       glass film and subtle outline instead of an indistinguishable black card.
+- [x] Drag across the redesigned bottom tab bar to preview tabs. On
+      release, choose the nearest tab and forward exactly one selection to
+      Spotify; ordinary taps and the Home long-press shortcut remain.
+- [ ] Verify the tab drag gesture, selection animation and navigation
+      interact correctly with the system tab bar on a device.
 - [x] Inset and round the actual UIKit tab bar into a capsule while keeping
       Spotify's existing tab hit targets and layout-safe-area measurements.
 - [x] Give themed Home, Search, Library and Spotify settings surfaces subtle
