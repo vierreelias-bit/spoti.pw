@@ -19,7 +19,7 @@
 #import "Redesigned/Player/Player.h"
 #import "Redesigned/Kit/SGRArtworkMotion.h"
 
-NSString *const SGRedesignedUIInfo = @"The newest version of spoti.pw, leaning towards Apple Music's style. It is not compatible with the legacy look's settings.\n\nThe legacy look gives you more freedom, yet still looks like Spotify.";
+NSString *const SGRedesignedUIInfo = @"EliSpot's Apple Music-inspired redesign. This is an independent look, not Apple Music itself. It uses its own appearance settings and, on supported iOS versions, system Liquid Glass.\n\nThe original Spotify-style interface remains available as the legacy look.";
 
 void SGSetRedesignedUI(BOOL on) {
     SGSetEnabled(SGKeyRedesign, on);
