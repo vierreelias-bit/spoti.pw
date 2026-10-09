@@ -22,6 +22,7 @@
 #import "Shared/JamesDSP/JamesDSPPage.h"
 #import "Shared/LiveActivity/LiveActivity.h"
 #import "Redesigned/Album/Album.h"
+#import "Redesigned/Artist/Artist.h"
 #import "App/About/About.h"
 #import "Pages.h"
 
@@ -57,6 +58,7 @@ static UIViewController *modSettingsPage(void) {
     }
     if (SGRedesignedUIStored()) {
         [parts addObject:pageRow(@"Albums", @"square.stack", ^UIViewController *{ return SGRAlbumSettingsPage(); })];
+        [parts addObject:pageRow(@"Artists", @"music.mic", ^UIViewController *{ return SGRArtistSettingsPage(); })];
     } else {
         [parts addObject:pageRow(@"Home & Library", @"house", ^UIViewController *{ return SGHomeSettingsPage(); })];
     }
