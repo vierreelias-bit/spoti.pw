@@ -99,6 +99,12 @@ static void logOnce(NSString *what) {
     }
     UICollectionViewLayoutAttributes *result = %orig;
     CGFloat natural = MAX(1, result.size.height);
+    if (SGFlag(SGRKeyShowAlbumExtraSections, NO)) {
+        // The page may reuse a cell once collapsed: undo the layout change
+        // before letting Spotify display the original section untouched.
+        if (objc_getAssociatedObject(cell, &kSettledKey)) unsettle(cell);
+        return result;
+    }
     if (isKept(content)) {
         settle(cell, natural, kLead);
         result.size = CGSizeMake(result.size.width, natural + kLead);
