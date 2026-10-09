@@ -144,8 +144,11 @@ static void logOnce(NSString *what) {
     SGRArtistCell kind = kindOf(content, result.size.height);
     kindsOf(list)[path] = @(kind);
 
-    BOOL drop = kind == SGRArtistCellVideos || [droppedOf(list) containsObject:path];
-    if (kind == SGRArtistCellVideos) {
+    // Preserve the original clean redesign by default, but allow video shelves
+    // when the user switches this preference off in the Artists settings page.
+    BOOL hideVideos = SGFlag(SGRKeyArtistHideVideos, YES);
+    BOOL drop = (hideVideos && kind == SGRArtistCellVideos) || [droppedOf(list) containsObject:path];
+    if (hideVideos && kind == SGRArtistCellVideos) {
         [droppedOf(list) addObject:path];
         dropHeadingOf(list, path);
     }
