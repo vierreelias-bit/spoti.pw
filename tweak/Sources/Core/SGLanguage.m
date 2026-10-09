@@ -194,9 +194,16 @@ NSString *SGT(NSString *english) {
             @"Found lyrics": @"Sanoitukset löytyivät",
             @"The redesigned look will be used when Spotify restarts.": @"Uudistettu ulkoasu otetaan käyttöön Spotifyn käynnistyessä uudelleen.",
             @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valittu Spotify-tyylinen teema otetaan käyttöön Spotifyn käynnistyessä uudelleen.",
-            @"Lyrics preview": @"Sanoitusten esikatselu",
-            @"Inline lyrics (experimental)": @"Sanoitukset soittimessa (kokeellinen)",
-            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Näytä kaksi sanoitusriviä kansikuvan ja kappaleen nimen välissä. Etsii sanoituksia valituista lähteistä, jos Spotifysta ei löydy niitä."
+            @"Colours follow song": @"Värit biisin mukaan",
+            @"Matches song artwork": @"Väri seuraa kansikuvaa",
+            @"Choose Spotify, AMOLED, Apple Music style, custom colours or colours that follow each song.": @"Valitse Spotify-, AMOLED- tai Apple Music -tyyli tai biisin mukana vaihtuvat värit.",
+            @"Animated video artwork": @"Animoidut videokannet",
+            @"Play a user-supplied MP4/MOV animated cover for the current song, if available. Respects Reduce Motion and Low Power Mode.": @"Toista itse lisätty MP4/MOV-videokansi nykyiselle biisille. Huomioi Vähennä liikettä -asetuksen ja virransäästötilan.",
+            @"Import animated cover": @"Tuo animoitu kansi",
+            @"Choose an authorized video in Files for the song playing now.": @"Valitse Tiedostot-sovelluksesta video, jota saat käyttää nyt soivan biisin kansikuvana.",
+            @"Animated artwork": @"Animoitu kansikuva",
+            @"Animated cover added for the selected song.": @"Animoitu kansi lisättiin kappaleelle.",
+            @"Play a Spotify song first, then import its animated cover.": @"Toista ensin Spotify-kappale ja tuo sitten sen animoitu kansi."
         },
         @"sv": @{
             @"System default": @"Systemets språk",
@@ -335,9 +342,11 @@ NSString *SGT(NSString *english) {
             @"Found lyrics": @"Låttext hittades",
             @"The redesigned look will be used when Spotify restarts.": @"Den nya designen används när Spotify startas om.",
             @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Valt Spotify-tema används när Spotify startas om.",
-            @"Lyrics preview": @"Förhandsvisning av låttext",
-            @"Inline lyrics (experimental)": @"Låttext i spelaren (experimentell)",
-            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Visa två textrader mellan omslaget och låttiteln. Använder valda källor när Spotify saknar låttext."
+            @"Colours follow song": @"Färger efter låten",
+            @"Matches song artwork": @"Färg från omslaget",
+            @"Animated video artwork": @"Animerade videoomslag",
+            @"Import animated cover": @"Importera animerat omslag",
+            @"Animated artwork": @"Animerat omslag"
         },
         @"de": @{
             @"System default": @"Systemsprache",
@@ -476,9 +485,11 @@ NSString *SGT(NSString *english) {
             @"Found lyrics": @"Songtext gefunden",
             @"The redesigned look will be used when Spotify restarts.": @"Das neue Design wird nach einem Neustart von Spotify aktiviert.",
             @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Das gewählte Spotify-Design wird nach einem Neustart aktiviert.",
-            @"Lyrics preview": @"Songtext-Vorschau",
-            @"Inline lyrics (experimental)": @"Songtext im Player (experimentell)",
-            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Zeigt zwei Songtextzeilen zwischen Cover und Titel. Verwendet gewählte Quellen, falls Spotify keinen Text hat."
+            @"Colours follow song": @"Farben passend zum Song",
+            @"Matches song artwork": @"Farbe aus dem Cover",
+            @"Animated video artwork": @"Animierte Videocover",
+            @"Import animated cover": @"Animiertes Cover importieren",
+            @"Animated artwork": @"Animiertes Cover"
         },
         @"es": @{
             @"System default": @"Idioma del sistema",
@@ -617,9 +628,11 @@ NSString *SGT(NSString *english) {
             @"Found lyrics": @"Letras encontradas",
             @"The redesigned look will be used when Spotify restarts.": @"El nuevo diseño se aplicará al reiniciar Spotify.",
             @"Your selected Spotify-style theme will be used when Spotify restarts.": @"El tema de Spotify elegido se aplicará al reiniciar.",
-            @"Lyrics preview": @"Vista previa de letras",
-            @"Inline lyrics (experimental)": @"Letras en el reproductor (experimental)",
-            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Muestra dos líneas entre la portada y el título. Usa las fuentes elegidas cuando Spotify no tiene letras."
+            @"Colours follow song": @"Colores según la canción",
+            @"Matches song artwork": @"Color de la portada",
+            @"Animated video artwork": @"Portadas de vídeo animadas",
+            @"Import animated cover": @"Importar portada animada",
+            @"Animated artwork": @"Portada animada"
         },
         @"fr": @{
             @"System default": @"Langue du système",
@@ -758,9 +771,11 @@ NSString *SGT(NSString *english) {
             @"Found lyrics": @"Paroles trouvées",
             @"The redesigned look will be used when Spotify restarts.": @"La nouvelle interface sera activée après le redémarrage de Spotify.",
             @"Your selected Spotify-style theme will be used when Spotify restarts.": @"Le thème Spotify choisi sera activé après le redémarrage.",
-            @"Lyrics preview": @"Aperçu des paroles",
-            @"Inline lyrics (experimental)": @"Paroles dans le lecteur (expérimental)",
-            @"Show two lyric lines between the album cover and the song title. Uses selected lyric sources if Spotify has none.": @"Affiche deux lignes entre la pochette et le titre. Utilise les sources choisies si Spotify n'a pas de paroles."
+            @"Colours follow song": @"Couleurs selon le morceau",
+            @"Matches song artwork": @"Couleur de la pochette",
+            @"Animated video artwork": @"Pochettes vidéo animées",
+            @"Import animated cover": @"Importer une pochette animée",
+            @"Animated artwork": @"Pochette animée"
         }
         };
     });
