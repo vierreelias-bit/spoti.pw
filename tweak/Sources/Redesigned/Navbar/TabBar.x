@@ -16,6 +16,7 @@
 #import "Settings/SGPage.h"
 #import "Headers/SPTEncoreIconView.h"
 #import <objc/message.h>
+#import <math.h>
 
 static char kBarKey, kHostKey;
 static __weak UIView *sg_stockBar;
