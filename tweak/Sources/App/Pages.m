@@ -117,7 +117,7 @@ static SGModRow *themePickerRow(void) {
 
 SGModSection *SGAppearanceSection(void) {
     if (!SGRedesignAvailable()) {
-        NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObject:unavailableRow()];
+        NSMutableArray<SGModRow *> *rows = [NSMutableArray arrayWithObjects:unavailableRow(), themePickerRow(), nil];
         [rows addObjectsFromArray:SGNativeAppearanceRows()];
         return SGNotedSection(@"Appearance", rows, @"Changes apply after you restart Spotify.");
     }
