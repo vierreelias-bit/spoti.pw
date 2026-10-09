@@ -17,7 +17,6 @@
 #import "Headers/SPTEncoreIconView.h"
 #import <objc/message.h>
 #import <math.h>
-#import <QuartzCore/QuartzCore.h>
 
 static char kBarKey, kHostKey;
 static __weak UIView *sg_stockBar;
@@ -30,11 +29,6 @@ static CGFloat sg_room, sg_glassHeight;   // see "room for the glass bar"
 @property (nonatomic, weak) UIPanGestureRecognizer *slide;
 @property (nonatomic) BOOL holding;
 @property (nonatomic) BOOL sliding;
-@property (nonatomic, strong) UIVisualEffectView *lens;
-@property (nonatomic, strong) UIView *lensGlow;
-@property (nonatomic, strong) UIImageView *lensGlyph;
-@property (nonatomic, strong) CAGradientLayer *lensRim;
-@property (nonatomic, strong) CAShapeLayer *lensRimMask;
 @end
 
 static void syncBar(UIView *stockBar);
@@ -188,156 +182,13 @@ static void forwardTap(UIView *item) {
 
 #pragma mark - the system bar
 
-// iOS 26's clear UIGlassEffect refracts actual artwork behind the control,
-// as in the user's reference. Keep it runtime-only for the Ubuntu iOS 16 SDK.
-static UIVisualEffect *elispotLensEffect(void) {
-    Class glassClass = NSClassFromString(@"UIGlassEffect");
-    SEL factory = NSSelectorFromString(@"effectWithStyle:");
-    if (@available(iOS 26.0, *)) {
-        if (glassClass && [glassClass respondsToSelector:factory]) {
-            id (*create)(id, SEL, NSInteger) = (void *)[glassClass methodForSelector:factory];
-            UIVisualEffect *effect = create(glassClass, factory, 1); // clear glass
-            if (effect) return effect;
-        }
-    }
-    return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
-}
-
 @implementation SGRSystemTabBar
-
-// Larger Apple-style glass orb; it belongs to the unclipped host so it can
-// hover above the pill. It does not receive touches, and Spotify retains all
-// normal tab buttons. The chosen tab is also enlarged within the orb.
-- (void)moveLensToIndex:(NSUInteger)index x:(CGFloat)x animated:(BOOL)animated {
-    NSUInteger count = MIN(self.items.count, self.sources.count);
-    CGFloat width = CGRectGetWidth(self.bounds), height = CGRectGetHeight(self.bounds);
-    UIView *host = self.superview;
-    if (!host || !count || index >= count || width < 130 || height < 45) {
-        self.lens.hidden = YES;
-        return;
-    }
-    if (!self.lens) {
-        UIVisualEffectView *lens = [[UIVisualEffectView alloc] initWithEffect:elispotLensEffect()];
-        lens.userInteractionEnabled = NO;
-        lens.accessibilityElementsHidden = YES;
-        lens.frame = CGRectMake(0, 0, 80, 80);
-        lens.layer.cornerRadius = 40;
-        lens.layer.cornerCurve = kCACornerCurveContinuous;
-        lens.layer.masksToBounds = YES;
-        lens.layer.borderWidth = 0.5;
-        lens.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.34].CGColor;
-        // Real system capsule corner configuration on iOS 26, rounded mask
-        // fallback when building/running with older UIKit.
-        SGShapeGlass(lens, 40, YES);
-
-        UIView *glow = [[UIView alloc] initWithFrame:lens.bounds];
-        glow.userInteractionEnabled = NO;
-        glow.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        [lens.contentView addSubview:glow];
-
-        UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(24, 22, 32, 32)];
-        icon.contentMode = UIViewContentModeScaleAspectFit;
-        icon.tintColor = UIColor.whiteColor;
-        icon.userInteractionEnabled = NO;
-        [lens.contentView addSubview:icon];
-
-        // Thin chromatic glass rim (gradient is masked to the circle outline).
-        CAGradientLayer *rim = [CAGradientLayer layer];
-        rim.colors = @[
-            (id)[UIColor colorWithRed:0.30 green:0.95 blue:0.90 alpha:0.75].CGColor,
-            (id)[UIColor colorWithRed:0.95 green:0.47 blue:0.88 alpha:0.72].CGColor,
-            (id)[UIColor colorWithRed:0.45 green:0.70 blue:1 alpha:0.80].CGColor,
-            (id)[UIColor colorWithRed:1 green:0.88 blue:0.58 alpha:0.70].CGColor,
-        ];
-        rim.startPoint = CGPointMake(0, 0);
-        rim.endPoint = CGPointMake(1, 1);
-        CAShapeLayer *outline = [CAShapeLayer layer];
-        outline.fillColor = UIColor.clearColor.CGColor;
-        outline.strokeColor = UIColor.whiteColor.CGColor;
-        outline.lineWidth = 1.6;
-        rim.mask = outline;
-        [lens.layer addSublayer:rim];
-
-        self.lens = lens;
-        self.lensGlow = glow;
-        self.lensGlyph = icon;
-        self.lensRim = rim;
-        self.lensRimMask = outline;
-    }
-    UIVisualEffectView *lens = self.lens;
-    if (lens.superview != host) [host addSubview:lens];
-    [host bringSubviewToFront:lens];
-    lens.hidden = NO;
-
-    BOOL solid = SGRReduceTransparency();
-    // Don't recreate the effect every layout pass: preserve the live
-    // refraction while the user's finger is sliding.
-    if (solid && lens.effect) lens.effect = nil;
-    else if (!solid && !lens.effect) lens.effect = elispotLensEffect();
-    lens.backgroundColor = solid ? [UIColor colorWithWhite:0.25 alpha:1] : UIColor.clearColor;
-    lens.alpha = solid ? 1 : 0.96;
-    UIColor *accent = SGRAccent();
-    self.lensGlow.backgroundColor = [accent colorWithAlphaComponent:solid ? 0.11 : 0.055];
-    self.lensRim.hidden = solid;
-    lens.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.32].CGColor;
-
-    UITabBarItem *item = self.items[index];
-    UIImage *art = item.selectedImage ?: item.image;
-    self.lensGlyph.image = [art imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-    self.lensGlyph.tintColor = accent;
-
-    // The orb follows the finger horizontally. Raise it above the selected
-    // tab's caption, so Finnish labels like "Oma kirjasto" remain readable.
-    CGFloat diameter = MIN(82.0, MAX(65.0, height * 0.94));
-    CGFloat centerX = fmax(diameter / 2, fmin(x, width - diameter / 2));
-    CGRect frame = CGRectMake(self.frame.origin.x + centerX - diameter / 2,
-                              self.frame.origin.y - diameter * 0.28,
-                              diameter, diameter);
-    __block CGFloat titleTop = CGFLOAT_MAX;
-    if (item.title.length) {
-        SGForEachView(self, ^(UIView *v) {
-            if (![v isKindOfClass:UILabel.class] || v.hidden || v.alpha < 0.05) return;
-            if (![((UILabel *)v).text isEqualToString:item.title]) return;
-            CGFloat y = CGRectGetMinY([v convertRect:v.bounds toView:self]);
-            if (y > 10 && y < height) titleTop = MIN(titleTop, y);
-        });
-    }
-    if (titleTop != CGFLOAT_MAX) {
-        // Leave the title outside the orb, but keep as much of its volume as
-        // possible within the floating-glass safe area above the bar.
-        CGFloat lowestTop = self.frame.origin.y + titleTop - diameter - 3;
-        frame.origin.y = MIN(frame.origin.y, lowestTop);
-    }
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-    lens.layer.cornerRadius = diameter / 2;
-    self.lensRim.frame = CGRectMake(0, 0, diameter, diameter);
-    self.lensRimMask.frame = self.lensRim.bounds;
-    self.lensRimMask.path = [UIBezierPath bezierPathWithOvalInRect:
-                             CGRectInset(self.lensRim.bounds, 1.1, 1.1)].CGPath;
-    self.lensGlyph.frame = CGRectMake((diameter - 34) / 2, (diameter - 34) / 2, 34, 34);
-    [CATransaction commit];
-
-    if (CGRectEqualToRect(lens.frame, frame)) return;
-    if (animated && !SGRReduceMotion()) {
-        [UIView animateWithDuration:0.30 delay:0 usingSpringWithDamping:0.82
-            initialSpringVelocity:0 options:UIViewAnimationOptionBeginFromCurrentState |
-                UIViewAnimationOptionAllowUserInteraction
-            animations:^{ lens.frame = frame; } completion:nil];
-    } else {
-        [lens.layer removeAnimationForKey:@"position"];
-        lens.frame = frame;
-    }
-}
 
 - (void)tabBar:(UITabBar *)tabBar didSelectItem:(UITabBarItem *)item {
     // A drag previews different tabs but must only navigate once on release.
     if (self.sliding) return;
     NSUInteger index = [self.items indexOfObject:item];
     if (index == NSNotFound || index >= self.sources.count) return;
-    [self moveLensToIndex:index
-                      x:((CGFloat)index + 0.5) * self.bounds.size.width / self.items.count
-               animated:YES];
     // Home tapped while on Home pops Spotify's stack, which would take Mod Settings straight off it.
     if (!self.holding) forwardTap(self.sources[index]);
     // Spotify repaints its labels a moment later; a tap it did not take snaps the selection back.
@@ -353,9 +204,6 @@ static UIVisualEffect *elispotLensEffect(void) {
     __block UITabBarItem *nearest = nil;
     __block CGFloat best = CGFLOAT_MAX;
     SGForEachView(self, ^(UIView *v) {
-        // The decorative lens repeats the selected item image. Ignore it when
-        // resolving which *real* item was long-pressed.
-        if (self.lens && (v == self.lens || [v isDescendantOfView:self.lens])) return;
         BOOL label = [v isKindOfClass:UILabel.class], glyph = [v isKindOfClass:UIImageView.class];
         if ((!label && !glyph) || v.bounds.size.width < 1) return;
         CGFloat distance = fabs([v convertPoint:CGPointMake(CGRectGetMidX(v.bounds), 0) toView:self].x - point.x);
@@ -392,10 +240,6 @@ static UIVisualEffect *elispotLensEffect(void) {
         if (index != NSNotFound) {
             UITabBarItem *target = self.items[index];
             if (self.selectedItem != target) self.selectedItem = target;
-            CGFloat slotX = ((CGFloat)index + 0.5) * self.bounds.size.width / self.items.count;
-            CGFloat fingerX = [slide locationInView:self].x;
-            [self moveLensToIndex:index x:state == UIGestureRecognizerStateEnded ? slotX : fingerX
-                        animated:state == UIGestureRecognizerStateEnded];
             if (state == UIGestureRecognizerStateEnded) {
                 self.sliding = NO;
                 // Programmatic selection doesn't navigate Spotify. Forward
@@ -645,15 +489,6 @@ static void syncBar(UIView *stockBar) {
     CGFloat side = MIN(12.0, MAX(0, (width - 250) / 2));
     CGRect barFrame = CGRectMake(side, 0, width - 2 * side, height);
     if (!CGRectEqualToRect(bar.frame, barFrame)) bar.frame = barFrame;
-    // Position the floating orb after UIKit has laid out the actual capsule;
-    // otherwise its first frame could be calculated using Spotify's 49pt bar.
-    if (!bar.sliding && bar.selectedItem) {
-        NSUInteger lensIndex = [bar.items indexOfObject:bar.selectedItem];
-        if (lensIndex != NSNotFound)
-            [bar moveLensToIndex:lensIndex
-                             x:((CGFloat)lensIndex + 0.5) * bar.bounds.size.width / bar.items.count
-                      animated:NO];
-    }
     CGFloat capsuleRadius = MIN(32.0, height / 2);
     bar.layer.cornerRadius = capsuleRadius;
     bar.layer.cornerCurve = kCACornerCurveContinuous;
