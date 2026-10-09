@@ -5,6 +5,8 @@
 #define SGRKeyAccent @"spotifyglass.redesign.accent"   // 0xRRGGBB
 #define SGRKeySongTheme @"spotifyglass.redesign.songColorTheme" // accent follows current artwork
 
+// Current song-dependent accent (or -1 if Song Colours theme is disabled).
+NSInteger SGRSongColorRGB(void);
 UIColor *SGRAccentColor(void);   // nil while Spotify's own green is kept
 NSString *SGRAccentLabel(void);  // "#RRGGBB", or the name of Spotify's own
 void SGRPickAccent(void);        // the system colour picker over the top of the app, stored on the way out
