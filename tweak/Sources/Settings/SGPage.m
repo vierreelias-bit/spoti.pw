@@ -16,6 +16,7 @@ static BOOL sg_pagesConform;
 // custom accent is selected. This is a real UITableView backgroundView rather
 // than a decorative image: it fits every screen size and cannot cover cells.
 @interface SGAmbientSettingsBackground : UIView
+- (instancetype)initWithColor:(UIColor *)accent;
 @end
 @implementation SGAmbientSettingsBackground {
     CAGradientLayer *_gradient;
